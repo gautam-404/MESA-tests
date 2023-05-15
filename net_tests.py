@@ -153,13 +153,10 @@ if __name__ == "__main__":
             {'change_net' : True, 'new_net_name' : 'basic.net',
                     'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
                     'show_net_species_info' : False, 'show_net_reactions_info' : False}]
-    M = [2, 2]
-    Z = [0.02, 0.02]
-    prod = list(product(M, Z))
-    M = [i[0] for i in prod]
-    Z = [i[1] for i in prod]
+    M = 2
+    Z = 0.02
     V = 0
-    length = len(M)
+    length = len(nets)
     n_cores = os.cpu_count()
     n_procs = length
     cpu_per_process = n_cores//n_procs
@@ -168,8 +165,8 @@ if __name__ == "__main__":
     with progress.Progress(*helper.progress_columns()) as progressbar:
         task = progressbar.add_task("[b i green]Running...", total=length)
         with Pool(n_procs, initializer=helper.unmute) as pool:
-            args = zip([f"test/test_net{i}" for i in range(len(nets))], M, Z, repeat(V), nets,
-                                    repeat(True), repeat(True), repeat(cpu_per_process))
+            args = zip([f"test/test_net{i}" for i in range(len(nets))], repeat(M), repeat(Z), repeat(V), 
+                        nets, repeat(True), repeat(True), repeat(cpu_per_process))
             for _ in pool.istarmap(evo_star, args):
                 progressbar.advance(task)
 
