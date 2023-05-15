@@ -13,7 +13,7 @@ import helper
 
 
 
-def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_process):
+def evo_star(name, mass, metallicity, v_surf_init, net, logging, parallel, cpu_this_process):
     produce_track = True
     print(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s")
     ## Create working directory
@@ -26,8 +26,8 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
             f.write(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s\n")
             f.write(f"CPU: {cpu_this_process}\n\n")
         star = MesaAccess(name)
-        star.load_HistoryColumns("../src/templates/history_columns.list")
-        star.load_ProfileColumns("../src/templates/profile_columns.list")
+        star.load_HistoryColumns("templates/history_columns.list")
+        star.load_ProfileColumns("templates/profile_columns.list")
 
         initial_mass = mass
         Zinit = metallicity
@@ -44,7 +44,7 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
         
         convergence_helper = {"convergence_ignore_equL_residuals" : True}  
 
-        inlist_template = "../src/templates/inlist_template"
+        inlist_template = "templates/inlist_template"
         failed = True   ## Flag to check if the run failed, if it did, we retry with a different initial mass (M+dM)
         retry = -1
         dM = [0, 1e-3, -1e-3, 2e-3, -2e-3]
@@ -68,6 +68,7 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
                             star.set(rotation_init_params, force=True)
                         if retry>=0:
                             star.set(convergence_helper, force=True)
+                        star.set(net, force=True)
                         proj.run(logging=logging, parallel=parallel)
                     else:
                         if phase_name == "Late Main Sequence Evolution":
@@ -96,7 +97,7 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
     profiles, gyre_input_params = get_gyre_params(name, Zinit)
     profiles = [profile.split('/')[-1] for profile in profiles]
     os.environ["OMP_NUM_THREADS"] = "4"
-    proj.runGyre(gyre_in="../src/templates/gyre_rot_template_dipole.in", files=profiles, data_format="GYRE", 
+    proj.runGyre(gyre_in="templates/gyre_rot_template_dipole.in", files=profiles, data_format="GYRE", 
                 logging=False, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
 
 
@@ -145,14 +146,20 @@ def get_gyre_params(name, zinit):
     
 
 if __name__ == "__main__":
-    M = 2
-    Z = 0.02
+    nets = [{'change_net' : True, 'new_net_name' : 'pp_and_cno_extras.net',  
+                    'change_initial_net' : False, 'adjust_abundances_for_new_isos' : True,
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
+            {'change_net' : True, 'new_net_name' : 'basic.net',
+                    'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False}]
+    M = [2, 2]
+    Z = [0.02, 0.02]
     prod = list(product(M, Z))
     M = [i[0] for i in prod]
     Z = [i[1] for i in prod]
     V = 0
     length = len(M)
-    n_cores = os.cpu_count()
+    n_cores = os.cpu_count()/4
     n_procs = length
     cpu_per_process = n_cores//n_procs
     os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
@@ -160,7 +167,7 @@ if __name__ == "__main__":
     with progress.Progress(*helper.progress_columns()) as progressbar:
         task = progressbar.add_task("[b i green]Running...", total=length)
         with Pool(n_procs, initializer=helper.unmute) as pool:
-            args = zip([f"test/test_M{M[i]}_Z{Z[i]}" for i in range(len(M))], M, Z, repeat(V),
+            args = zip([f"test/test_net{i}" for i in range(len(nets))], M, Z, repeat(V), nets,
                                     repeat(True), repeat(True), repeat(cpu_per_process))
             for _ in pool.istarmap(evo_star, args):
                 progressbar.advance(task)

@@ -1,0 +1,96 @@
+&constants
+/
+
+&model
+	model_type = 'EVOL'                 ! Obtain structure coefficient data from an evolutionary model
+
+	file = 'LOGS/profile00.data.GYRE'
+    file_format = 'MESA'              ! File format of the evolutionary model
+/
+
+&mode
+	l = 0
+/
+
+
+&mode
+	l = 1
+	m = -1
+/
+&mode
+	l = 1
+	m = 0
+/
+&mode
+	l = 1
+	m = 1
+/
+
+
+&mode
+	l = 2
+	m = -2
+/
+&mode
+	l = 2
+	m = -1
+/
+&mode
+	l = 2
+	m = 0
+/
+&mode
+	l = 2
+	m = 1
+/
+&mode
+	l = 2
+	m = 2
+/
+
+&osc
+	inner_bound = 'ZERO_R'
+/
+
+&num
+	diff_scheme = 'MAGNUS_GL2'
+/
+
+&scan
+	freq_min_units = 'CYC_PER_DAY'
+	freq_max_units = 'CYC_PER_DAY'
+	grid_type = 'LINEAR'
+	grid_frame = 'INERTIAL'
+
+	freq_min = 15
+	freq_max = 95
+	n_freq = 150
+/
+
+&grid
+	x_i = 0.00001
+	w_osc = 10
+	w_exp = 2
+	w_ctr = 10
+/
+
+&rot
+	coriolis_method = 'TAR'
+	Omega_rot_source = 'MODEL'
+	rossby = .FALSE.
+/
+
+&ad_output
+	freq_units = 'CYC_PER_DAY'
+	freq_frame = 'INERTIAL'
+	summary_file='SJM_GYRE_profile00.txt'
+	summary_file_format = 'TXT'
+	summary_item_list = 'M_star,R_star,l,m,n_pg,n_p,n_g,E_norm,freq,freq_units,dfreq_rot' ! Items to appear in summary file"
+/
+
+&nad_output
+	freq_units = 'CYC_PER_DAY'
+	summary_file = 'freq_output_nonad.txt'
+	summary_file_format = 'TXT'
+	summary_item_list = 'M_star,R_star,l,m,n_pg,n_p,n_g,E_norm,freq,freq_units,dfreq_rot' ! Items to appear in summary file"
+/
