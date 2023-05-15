@@ -24,7 +24,8 @@ def evo_star(name, mass, metallicity, v_surf_init, net, logging, parallel, cpu_t
         proj.create(overwrite=True) 
         with open(f"{name}/run.log", "a+") as f:
             f.write(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s\n")
-            f.write(f"CPU: {cpu_this_process}\n\n")
+            f.write(f"CPU: {cpu_this_process}\n")
+            f.write(f"OMP_NUM_THREADS: {os.environ['OMP_NUM_THREADS']}\n\n")
         star = MesaAccess(name)
         star.load_HistoryColumns("templates/history_columns.list")
         star.load_ProfileColumns("templates/profile_columns.list")
@@ -159,7 +160,7 @@ if __name__ == "__main__":
     Z = [i[1] for i in prod]
     V = 0
     length = len(M)
-    n_cores = os.cpu_count()/4
+    n_cores = os.cpu_count()
     n_procs = length
     cpu_per_process = n_cores//n_procs
     os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
