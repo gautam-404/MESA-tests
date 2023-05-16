@@ -158,14 +158,20 @@ if __name__ == "__main__":
                     'show_net_species_info' : False, 'show_net_reactions_info' : False},
             {'change_net' : True, 'new_net_name' : 'basic.net',
                     'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
+            {'change_net' : True, 'new_net_name' : 'cno_extras.net',
+                    'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
+            {'change_net' : True, 'new_net_name' : 'pp_extras.net',
+                    'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
+            {'change_net' : True, 'new_net_name' : 'hot_cno.net',
+                    'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
                     'show_net_species_info' : False, 'show_net_reactions_info' : False}]
-    M = [1.2, 1.5, 1.8, 2, 2.2]
+    M = 1.5
     Z = 0.02
     V = 0
-    M = [m for m, net in product(M, nets)]
-    nets = [net for m, net in product(M, nets)]
     length = len(nets)
-    # n_cores = int(os.environ["SLURM_CPUS_PER_TASK"])
     n_cores = psutil.cpu_count(logical=False)
     n_procs = length
     cpu_per_process = n_cores//n_procs
@@ -176,7 +182,7 @@ if __name__ == "__main__":
         with progress.Progress(*helper.progress_columns()) as progressbar:
             task = progressbar.add_task("[b i green]Running...", total=length)
             with Pool(n_procs, initializer=helper.unmute) as pool:
-                args = zip([f"test/test_net{i}" for i in range(len(nets))], M, repeat(Z), repeat(V), 
+                args = zip([f"test/test_net{i}" for i in range(len(nets))], repeat(M), repeat(Z), repeat(V), 
                             nets, repeat(True), repeat(True), repeat(cpu_per_process))
                 # for _ in pool.istarmap(evo_star, args):
                 for _ in enumerate(pool.imap_unordered(evo_star, args)):
