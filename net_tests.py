@@ -7,13 +7,16 @@ import os, shutil
 from itertools import repeat, product
 from multiprocessing import Pool
 import glob
+import time
 
 
 import helper
 
 
 
-def evo_star(name, mass, metallicity, v_surf_init, net, logging, parallel, cpu_this_process):
+def evo_star(args):
+    name, mass, metallicity, v_surf_init, net, logging, parallel, cpu_this_process = args
+    start_time = time.time()
     produce_track = True
     print(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s")
     ## Create working directory
@@ -94,6 +97,9 @@ def evo_star(name, mass, metallicity, v_surf_init, net, logging, parallel, cpu_t
                     f.write(f"Failed at phase: {phase_name}\n")
                     f.write(f"Retrying with dM = {dM[retry]}\n")
                     f.write(f"New initial mass: {initial_mass}\n")
+    end_time = time.time()
+    with open(f"{name}/run.log", "a+") as f:
+        f.write(f"Total time: {end_time-start_time} s\n\n")
 
     profiles, gyre_input_params = get_gyre_params(name, Zinit)
     profiles = [profile.split('/')[-1] for profile in profiles]
@@ -153,20 +159,29 @@ if __name__ == "__main__":
             {'change_net' : True, 'new_net_name' : 'basic.net',
                     'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
                     'show_net_species_info' : False, 'show_net_reactions_info' : False}]
-    M = 2
+    M = [1.2, 1.5, 1.8, 2, 2.2]
     Z = 0.02
     V = 0
+    M = [m for m, net in product(M, nets)]
+    nets = [net for m, net in product(M, nets)]
     length = len(nets)
-    n_cores = os.cpu_count()
-    n_procs = length
-    cpu_per_process = n_cores//n_procs
+    n_cores = int(os.environ["SLURM_CPUS_PER_TASK"])
+    # n_procs = length
+    # cpu_per_process = n_cores//n_procs
+    cpu_per_process = 12
+    n_procs = n_cores//cpu_per_process
     os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
-    print(f"Running {length} tracks with {n_procs} processes and {cpu_per_process} cores per process.")
-    with progress.Progress(*helper.progress_columns()) as progressbar:
-        task = progressbar.add_task("[b i green]Running...", total=length)
-        with Pool(n_procs, initializer=helper.unmute) as pool:
-            args = zip([f"test/test_net{i}" for i in range(len(nets))], repeat(M), repeat(Z), repeat(V), 
-                        nets, repeat(True), repeat(True), repeat(cpu_per_process))
-            for _ in pool.istarmap(evo_star, args):
-                progressbar.advance(task)
-
+    parallel = True
+    if parallel:
+        print(f"Running {length} tracks on {cpu_per_process} cores per process.")
+        with progress.Progress(*helper.progress_columns()) as progressbar:
+            task = progressbar.add_task("[b i green]Running...", total=length)
+            with Pool(n_procs, initializer=helper.unmute) as pool:
+                args = zip([f"test/test_net{i}" for i in range(len(nets))], M, repeat(Z), repeat(V), 
+                            nets, repeat(True), repeat(True), repeat(cpu_per_process))
+                # for _ in pool.istarmap(evo_star, args):
+                for _ in enumerate(pool.imap_unordered(evo_star, args)):
+                    progressbar.advance(task)
+    else:
+        for i in range(len(nets)):
+            evo_star(f"test/test_net{i}", M[i], Z, V, nets[i], True, True, cpu_per_process)
