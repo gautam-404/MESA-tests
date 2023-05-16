@@ -3,7 +3,7 @@ from MESAcontroller import ProjectOps, MesaAccess
 import numpy as np
 import pandas as pd
 from rich import print, progress
-import os, shutil
+import os, psutil
 from itertools import repeat, product
 from multiprocessing import Pool
 import glob
@@ -165,11 +165,10 @@ if __name__ == "__main__":
     M = [m for m, net in product(M, nets)]
     nets = [net for m, net in product(M, nets)]
     length = len(nets)
-    n_cores = int(os.environ["SLURM_CPUS_PER_TASK"])
-    # n_procs = length
-    # cpu_per_process = n_cores//n_procs
-    cpu_per_process = 12
-    n_procs = n_cores//cpu_per_process
+    # n_cores = int(os.environ["SLURM_CPUS_PER_TASK"])
+    n_cores = psutil.cpu_count(logical=False)
+    n_procs = length
+    cpu_per_process = n_cores//n_procs
     os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
     parallel = True
     if parallel:
