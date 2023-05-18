@@ -8,6 +8,7 @@ from itertools import repeat, product
 from multiprocessing import Pool
 import glob
 import time
+import itertools
 
 
 import helper
@@ -15,15 +16,14 @@ import helper
 
 
 def evo_star(args):
-    name, mass, metallicity, v_surf_init, net, logging, parallel, cpu_this_process = args
+    name, mass, metallicity, v_surf_init, net, logging, parallel, cpu_this_process, produce_track = args
     start_time = time.time()
-    produce_track = True
-    print(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s")
-    ## Create working directory
+    ## Create/Resume working directory
     proj = ProjectOps(name)    
     initial_mass = mass
     Zinit = metallicity 
     if produce_track:
+        print(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s")
         proj.create(overwrite=True) 
         with open(f"{name}/run.log", "a+") as f:
             f.write(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s\n")
@@ -97,15 +97,23 @@ def evo_star(args):
                     f.write(f"Failed at phase: {phase_name}\n")
                     f.write(f"Retrying with dM = {dM[retry]}\n")
                     f.write(f"New initial mass: {initial_mass}\n")
-    end_time = time.time()
-    with open(f"{name}/run.log", "a+") as f:
-        f.write(f"Total time: {end_time-start_time} s\n\n")
+        end_time = time.time()
+        with open(f"{name}/run.log", "a+") as f:
+            f.write(f"Total time: {end_time-start_time} s\n\n")
 
-    profiles, gyre_input_params = get_gyre_params(name, Zinit)
-    profiles = [profile.split('/')[-1] for profile in profiles]
-    os.environ["OMP_NUM_THREADS"] = "4"
-    proj.runGyre(gyre_in="templates/gyre_rot_template_dipole.in", files=profiles, data_format="GYRE", 
-                logging=False, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
+    gyre = True
+    if gyre:
+        try:
+            if not os.path.exists(f"{name}/gyre.log"):
+                profiles, gyre_input_params = get_gyre_params(name, Zinit)
+                profiles = [profile.split('/')[-1] for profile in profiles]
+                os.environ["OMP_NUM_THREADS"] = "1"
+                proj.runGyre(gyre_in="templates/gyre_rot_template_dipole.in", files=profiles, data_format="GYRE", 
+                            logging=False, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
+            else:
+                print("Gyre already ran for track ", name)
+        except:
+            print("Gyre failed for track ", name)
 
 
 def get_gyre_params(name, zinit):
@@ -153,13 +161,7 @@ def get_gyre_params(name, zinit):
     
 
 if __name__ == "__main__":
-    nets = [{'change_net' : True, 'new_net_name' : 'pp_and_cno_extras.net',  
-                    'change_initial_net' : False, 'adjust_abundances_for_new_isos' : True,
-                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
-            {'change_net' : True, 'new_net_name' : 'basic.net',
-                    'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
-                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
-            {'change_net' : True, 'new_net_name' : 'cno_extras.net',
+    nets_sample = [{'change_net' : True, 'new_net_name' : 'basic.net',
                     'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
                     'show_net_species_info' : False, 'show_net_reactions_info' : False},
             {'change_net' : True, 'new_net_name' : 'pp_extras.net',
@@ -167,26 +169,47 @@ if __name__ == "__main__":
                     'show_net_species_info' : False, 'show_net_reactions_info' : False},
             {'change_net' : True, 'new_net_name' : 'hot_cno.net',
                     'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
-                    'show_net_species_info' : False, 'show_net_reactions_info' : False}]
-    M = 1.5
-    Z = 0.02
-    V = 0
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
+            {'change_net' : True, 'new_net_name' : 'pp_and_cno_extras.net',  
+                    'change_initial_net' : False, 'adjust_abundances_for_new_isos' : True,
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
+            {'change_net' : True, 'new_net_name' : 'cno_extras.net',
+                    'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False},]
+    M_sample = [1.2, 2.2]
+    Z_sample = [0.001, 0.026]
+    V_sample = [0, 18]
+    combinations = list(itertools.product(M_sample, Z_sample, V_sample, nets_sample))
+    
+    M = []
+    Z = []
+    V = []
+    nets = []
+    names = []
+    for m, z, v, net in combinations:
+        M.append(m)
+        Z.append(z)
+        V.append(v)
+        nets.append(net)
+        names.append(f"test/m{m}_z{z}_v{v}_net{net['new_net_name'].split('.')[0]}")
+
     length = len(nets)
     n_cores = psutil.cpu_count(logical=False)
     n_procs = length
     cpu_per_process = n_cores//n_procs
     os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
     parallel = True
+    produce_track = False
     if parallel:
-        print(f"Running {length} tracks on {cpu_per_process} cores per process.")
+        print(f"Total {length} tracks.")
+        print(f"Running {n_procs} processes in parallel.")
+        print(f"Using {cpu_per_process} cores per process.")
         with progress.Progress(*helper.progress_columns()) as progressbar:
             task = progressbar.add_task("[b i green]Running...", total=length)
             with Pool(n_procs, initializer=helper.unmute) as pool:
-                args = zip([f"test/test_net{i}" for i in range(len(nets))], repeat(M), repeat(Z), repeat(V), 
-                            nets, repeat(True), repeat(True), repeat(cpu_per_process))
-                # for _ in pool.istarmap(evo_star, args):
+                args = zip(names, M, Z, V, nets, repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track))
                 for _ in enumerate(pool.imap_unordered(evo_star, args)):
                     progressbar.advance(task)
     else:
         for i in range(len(nets)):
-            evo_star(f"test/test_net{i}", M[i], Z, V, nets[i], True, True, cpu_per_process)
+            evo_star(f"test/test_net{i}", M[i], Z, V, nets[i], True, True, cpu_per_process, produce_track)
