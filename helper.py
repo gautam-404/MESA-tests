@@ -252,40 +252,16 @@ def archive_LOGS(name, track, save_track, gyre):
     shutil.rmtree(name)
 
 
+def read_error(name):
+    retry_type = ""
+    terminate_type = ""
+    with open(f"{name}/run.log", "r") as f:
+        for outline in f:
+            splitline = outline.split(" ")
+            if "retry:" in splitline:
+                retry_type = outline.split(" ")
+            if "terminated" in splitline and "evolution:" in splitline:
+                terminate_type = outline.split(" ")
+    print(retry_type, terminate_type)
+    return retry_type, terminate_type
 
-
-
-
-
-
-
-
-### temp function: used only when you want to run failed tracks, move to raygrid.py to use ###
-# def rerun_failed(grid_archive, masses, metallicities, v_surf_init_list, cpu_per_process=16,
-#                 gyre=False, save_track=True, logging=True, overwrite=None):
-#     '''
-#     Retry failed tracks
-#     Args:
-#         grid_archive (str): grid archive directory
-#         gyre (optional, bool): whether to run GYRE on the tracks
-#         save_track (optional, bool): whether to save the track
-#         logging (optional, bool): whether to log the evolution
-#         overwrite (optional, bool): whether to overwrite the grid_archive
-#     '''
-#     failed_tracks = glob.glob(f"{grid_archive}/failed/*")
-#     print(f"[b i][blue]Running {len(failed_tracks)} previously failed tracks.[/blue]")
-#     failed_masses = []
-#     failed_metallicities = []
-#     failed_v_surf_init_list = []
-#     tracks_list = []
-#     for track in failed_tracks:
-#         i = int(track.split("/")[-1].split(".")[0].split("_")[-1])
-#         failed_masses.append(masses[i-1])
-#         failed_metallicities.append(metallicities[i-1])
-#         failed_v_surf_init_list.append(v_surf_init_list[i-1])
-#         tracks_list.append(i)
-        
-#     run_grid(failed_masses, failed_metallicities, failed_v_surf_init_list, 
-#             tracks_list=tracks_list, cpu_per_process=cpu_per_process, gyre=gyre, 
-#             save_track=save_track, logging=logging, overwrite=overwrite)
-        

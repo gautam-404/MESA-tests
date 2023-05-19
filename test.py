@@ -45,9 +45,10 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
 
         inlist_template = "../MESA-grid/src/templates/inlist_template"
         failed = True   ## Flag to check if the run failed, if it did, we retry with a different initial mass (M+dM)
-        retry = -1
-        dM = [0, 0, 1e-3, -1e-3, 2e-3, -2e-3]
-        while retry<len(dM) and failed:
+        retry = 0
+        total_retries = 2
+        retry_type, terminate_type = None, None
+        while retry<total_retries and failed:
             proj.clean()
             proj.make(silent=True)
             phases_params = helper.phases_params(initial_mass, Zinit)     
@@ -63,22 +64,22 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
                     star.set('max_age', phase_max_age.pop(0), force=True)
                     if uniform_rotation:
                         star.set({"set_uniform_am_nu_non_rot": True}, force=True)
-                    if retry == 0:
-                        teff_helper(star)
+                    if retry > 0:
+                        if retry_type == "delta_lgTeff":
+                            teff_helper(star)
+                        else:
+                            star.set(convergence_helper, force=True)
                     if phase_name == "Pre-MS Evolution":
                         ## Initiate rotation
                         if v_surf_init>0:
                             star.set(rotation_init_params, force=True)
-                        if retry>0:
-                            star.set(convergence_helper, force=True)
                         proj.run(logging=logging, parallel=parallel)
                     else:
-                        # if phase_name == "Late Main Sequence Evolution":
-                        #     continue
                         proj.resume(logging=logging, parallel=parallel)
                 except Exception as e:
                     failed = True
                     print(e)
+                    retry_type, terminate_type = helper.read_error(name)
                     break
                 except KeyboardInterrupt:
                     raise KeyboardInterrupt
@@ -86,15 +87,16 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
                     failed = False
             if failed:
                 retry += 1
-                initial_mass = mass + dM[retry]
                 with open(f"{name}/run.log", "a+") as f:
-                    if retry == len(dM)-1:
+                    if retry == total_retries-1:
                         f.write(f"Max retries reached. Model skipped!\n")
                         break
                     f.write(f"\nMass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s\n")
                     f.write(f"Failed at phase: {phase_name}\n")
-                    f.write(f"Retrying with dM = {dM[retry]}\n")
-                    f.write(f"New initial mass: {initial_mass}\n")
+                    if retry_type == "delta_lgTeff":
+                        f.write(f"Retrying with \"T_eff helper\"\n")
+                    else:
+                        f.write(f"Retrying with \"convergence helper\"\n")
 
     # profiles, gyre_input_params = get_gyre_params(name, Zinit)
     # profiles = [profile.split('/')[-1] for profile in profiles]
@@ -106,7 +108,7 @@ def teff_helper(star):
     delta_lgTeff_limit = star.get("delta_lgTeff_limit")
     delta_lgTeff_hard_limit = star.get("delta_lgTeff_hard_limit")
     delta_lgTeff_limit += delta_lgTeff_limit/10
-    delta_lgTeff_hard_limit += delta_lgTeff_hard_limit/10
+    delta_lgTeff_hard_limit += delta_lgTeff_hard_limit/4
     star.set({"delta_lgTeff_limit": delta_lgTeff_limit, "delta_lgTeff_hard_limit": delta_lgTeff_hard_limit}, force=True)
 
 
