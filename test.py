@@ -104,6 +104,7 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
     # proj.runGyre(gyre_in="../MESA-grid/src/templates/gyre_rot_template_dipole.in", files=profiles, data_format="GYRE", 
     #             logging=False, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
     
+    
 def teff_helper(star):
     delta_lgTeff_limit = star.get("delta_lgTeff_limit")
     delta_lgTeff_hard_limit = star.get("delta_lgTeff_hard_limit")
