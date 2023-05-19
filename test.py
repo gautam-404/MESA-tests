@@ -1,9 +1,9 @@
-from MESAcontroller import ProjectOps, MesaAccess
+from MESAcontroller import MesaAccess, ProjectOps
 
 import numpy as np
 import pandas as pd
 from rich import print, progress
-import os, shutil
+import os, shutil, psutil
 from itertools import repeat, product
 from multiprocessing import Pool
 import glob
@@ -13,7 +13,7 @@ import helper
 
 
 
-def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_process, uniform_rotation):
+def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_process, uniform_rotation, trace=None):
     produce_track = True
     print(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s")
     ## Create working directory
@@ -73,9 +73,9 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
                         ## Initiate rotation
                         if v_surf_init>0:
                             star.set(rotation_init_params, force=True)
-                        proj.run(logging=logging, parallel=parallel)
+                        proj.run(logging=logging, parallel=parallel, trace=trace)
                     else:
-                        proj.resume(logging=logging, parallel=parallel)
+                        proj.resume(logging=logging, parallel=parallel, trace=trace)
                 except Exception as e:
                     failed = True
                     print(e)
@@ -104,12 +104,12 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
     # proj.runGyre(gyre_in="../MESA-grid/src/templates/gyre_rot_template_dipole.in", files=profiles, data_format="GYRE", 
     #             logging=False, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
     
-    
+
 def teff_helper(star):
     delta_lgTeff_limit = star.get("delta_lgTeff_limit")
     delta_lgTeff_hard_limit = star.get("delta_lgTeff_hard_limit")
     delta_lgTeff_limit += delta_lgTeff_limit/10
-    delta_lgTeff_hard_limit += delta_lgTeff_hard_limit/4
+    delta_lgTeff_hard_limit += delta_lgTeff_hard_limit
     star.set({"delta_lgTeff_limit": delta_lgTeff_limit, "delta_lgTeff_hard_limit": delta_lgTeff_hard_limit}, force=True)
 
 
@@ -165,17 +165,27 @@ if __name__ == "__main__":
     Z = [i[1] for i in prod]
     V = 20
     uniform_rotation = True
-    length = len(M)
-    n_cores = os.cpu_count()
-    n_procs = length
-    cpu_per_process = n_cores//n_procs
-    os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
-    print(f"Running {length} tracks with {n_procs} processes and {cpu_per_process} cores per process.")
-    with progress.Progress(*helper.progress_columns()) as progressbar:
-        task = progressbar.add_task("[b i green]Running...", total=length)
-        with Pool(n_procs, initializer=helper.unmute) as pool:
-            args = zip([f"test/test_M{M[i]}_Z{Z[i]}" for i in range(len(M))], M, Z, repeat(V),
-                                    repeat(True), repeat(True), repeat(cpu_per_process), repeat(uniform_rotation))
-            for _ in pool.istarmap(evo_star, args):
-                progressbar.advance(task)
+
+    parallel = False
+    if parallel:
+        length = len(M)
+        n_cores = psutil.cpu_count(logical=False)
+        n_procs = length
+        cpu_per_process = n_cores//n_procs
+        os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
+        print(f"Running {length} tracks with {n_procs} processes and {cpu_per_process} cores per process.")
+        with progress.Progress(*helper.progress_columns()) as progressbar:
+            task = progressbar.add_task("[b i green]Running...", total=length)
+            with Pool(n_procs, initializer=helper.unmute) as pool:
+                args = zip([f"test/test_M{M[i]}_Z{Z[i]}" for i in range(len(M))], M, Z, repeat(V),
+                                        repeat(True), repeat(True), repeat(cpu_per_process), repeat(uniform_rotation))
+                for _ in pool.istarmap(evo_star, args):
+                    progressbar.advance(task)
+    else:
+        trace = ["surf_avg_v_rot", "surf_avg_omega_div_omega_crit"]
+        cpu_per_process = psutil.cpu_count(logical=False)
+        os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
+        for i in range(len(M)):
+            evo_star(f"test/test_M{M[i]}_Z{Z[i]}", M[i], Z[i], V, True, False, cpu_per_process, uniform_rotation, trace=trace)
+
 
