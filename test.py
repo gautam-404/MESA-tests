@@ -48,7 +48,7 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
         retry = 0
         total_retries = 2
         retry_type, terminate_type = None, None
-        while retry<total_retries and failed:
+        while retry<=total_retries and failed:
             proj.clean()
             proj.make(silent=True)
             phases_params = helper.phases_params(initial_mass, Zinit)     
@@ -88,7 +88,7 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
             if failed:
                 retry += 1
                 with open(f"{name}/run.log", "a+") as f:
-                    if retry == total_retries-1:
+                    if retry == total_retries:
                         f.write(f"Max retries reached. Model skipped!\n")
                         break
                     f.write(f"\nMass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s\n")
