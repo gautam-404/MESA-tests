@@ -13,7 +13,7 @@ import helper
 
 
 
-def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_process):
+def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_process, uniform_rotation):
     produce_track = True
     print(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s")
     ## Create working directory
@@ -26,8 +26,8 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
             f.write(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s\n")
             f.write(f"CPU: {cpu_this_process}\n\n")
         star = MesaAccess(name)
-        star.load_HistoryColumns("../src/templates/history_columns.list")
-        star.load_ProfileColumns("../src/templates/profile_columns.list")
+        star.load_HistoryColumns("../MESA-grid/src/templates/history_columns.list")
+        star.load_ProfileColumns("../MESA-grid/src/templates/profile_columns.list")
 
         initial_mass = mass
         Zinit = metallicity
@@ -39,15 +39,14 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
                                 'new_surface_rotation_v': v_surf_init,
                                 'relax_surface_rotation_v' : True,
                                 'num_steps_to_relax_rotation' : 100,  ## Default value is 100
-                                'relax_omega_max_yrs_dt' : 1.0E-5,   ## Default value is 1.0E9
-                                'set_uniform_am_nu_non_rot': True}
+                                'relax_omega_max_yrs_dt' : 1.0E-5}
         
         convergence_helper = {"convergence_ignore_equL_residuals" : True}  
 
-        inlist_template = "../src/templates/inlist_template"
+        inlist_template = "../MESA-grid/src/templates/inlist_template"
         failed = True   ## Flag to check if the run failed, if it did, we retry with a different initial mass (M+dM)
         retry = -1
-        dM = [0, 1e-3, -1e-3, 2e-3, -2e-3]
+        dM = [0, 0, 1e-3, -1e-3, 2e-3, -2e-3]
         while retry<len(dM) and failed:
             proj.clean()
             proj.make(silent=True)
@@ -62,16 +61,20 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
                     print(phase_name)
                     star.set(phases_params[phase_name], force=True)
                     star.set('max_age', phase_max_age.pop(0), force=True)
+                    if uniform_rotation:
+                        star.set({"set_uniform_am_nu_non_rot": True}, force=True)
+                    if retry == 0:
+                        teff_helper(star)
                     if phase_name == "Pre-MS Evolution":
                         ## Initiate rotation
                         if v_surf_init>0:
                             star.set(rotation_init_params, force=True)
-                        if retry>=0:
+                        if retry>0:
                             star.set(convergence_helper, force=True)
                         proj.run(logging=logging, parallel=parallel)
                     else:
-                        if phase_name == "Late Main Sequence Evolution":
-                            continue
+                        # if phase_name == "Late Main Sequence Evolution":
+                        #     continue
                         proj.resume(logging=logging, parallel=parallel)
                 except Exception as e:
                     failed = True
@@ -93,88 +96,18 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
                     f.write(f"Retrying with dM = {dM[retry]}\n")
                     f.write(f"New initial mass: {initial_mass}\n")
 
-    profiles, gyre_input_params = get_gyre_params(name, Zinit)
-    profiles = [profile.split('/')[-1] for profile in profiles]
-    os.environ["OMP_NUM_THREADS"] = "4"
-    proj.runGyre(gyre_in="../src/templates/gyre_rot_template_dipole.in", files=profiles, data_format="GYRE", 
-                logging=False, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
+    # profiles, gyre_input_params = get_gyre_params(name, Zinit)
+    # profiles = [profile.split('/')[-1] for profile in profiles]
+    # os.environ["OMP_NUM_THREADS"] = "4"
+    # proj.runGyre(gyre_in="../MESA-grid/src/templates/gyre_rot_template_dipole.in", files=profiles, data_format="GYRE", 
+    #             logging=False, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
     
-
-def evolve2(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_process):
-    print(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s")
-    ## Create working directory
-    proj = ProjectOps(name)    
-    proj.create(overwrite=True) 
-    with open(f"{name}/run.log", "a+") as f:
-        f.write(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s\n")
-        f.write(f"CPU: {cpu_this_process}\n\n")
-    star = MesaAccess(name)
-    star.load_HistoryColumns("../src/templates/history_columns.list")
-    star.load_ProfileColumns("../src/templates/profile_columns.list")
-
-    initial_mass = mass
-    Zinit = metallicity
-
-    convergence_helper = {"convergence_ignore_equL_residuals" : True}  
-
-    proj.clean()
-    proj.make(silent=True)
-    inlists = glob.glob("simon_inlists/*_inlist*")
-    terminal_age = float(np.round(2500/initial_mass**2.5,1)*1.0E6)
-    phase_max_age = [1E6, 1E7, 4.0E7, terminal_age]
-
-    ## 1
-    star.load_InlistProject(inlists.pop(0))
-    Yinit, initial_h1, initial_h2, initial_he3, initial_he4 = helper.initial_abundances(Zinit)
-    params = {'initial_mass': initial_mass, 'initial_z': Zinit, 'Zbase': Zinit, 'initial_y': Yinit,
-        'initial_h1': initial_h1,'initial_h2': initial_h2, 
-        'initial_he3': initial_he3, 'initial_he4': initial_he4, 'max_age': phase_max_age.pop(0)}
-    star.set(params, force=True)
-    proj.run(logging=logging, parallel=parallel)
-    star.set(params, force=True)
-    proj.run(logging=logging, parallel=parallel)
-
-    ## 2
-    star.load_InlistProject(inlists.pop(0))
-    Yinit, initial_h1, initial_h2, initial_he3, initial_he4 = helper.initial_abundances(Zinit)
-    params = {'initial_mass': initial_mass, 'relax_mass': False, 'new_mass': initial_mass, 
-              'initial_z': Zinit, 'Zbase': Zinit, 'initial_y': Yinit, 'max_age': phase_max_age.pop(0)}
-    star.set(params, force=True)
-    proj.resume(logging=logging, parallel=parallel)
-
-    ## 3
-    star.load_InlistProject(inlists.pop(0))
-    Yinit, initial_h1, initial_h2, initial_he3, initial_he4 = helper.initial_abundances(Zinit)
-    params = {'initial_mass': initial_mass, 'relax_mass': False, 'new_mass': initial_mass, 
-              'initial_z': Zinit, 'Zbase': Zinit, 'initial_y': Yinit, 'max_age': phase_max_age.pop(0),
-              'history_interval': 15, 'profile_interval': 15}
-    star.set(params, force=True)
-    proj.resume(logging=logging, parallel=parallel)
-
-    ## 4
-    star.load_InlistProject(inlists.pop(0))
-    Yinit, initial_h1, initial_h2, initial_he3, initial_he4 = helper.initial_abundances(Zinit)
-    params = {'initial_mass': initial_mass, 'relax_mass': False, 'new_mass': initial_mass, 
-              'initial_z': Zinit, 'Zbase': Zinit, 'initial_y': Yinit, 'max_age': phase_max_age.pop(0),
-              'history_interval': 4, 'profile_interval': 4}
-    star.set(params, force=True)
-    proj.resume(logging=logging, parallel=parallel)
-
-    ##5
-    star.load_InlistProject(inlists.pop(0))
-    Yinit, initial_h1, initial_h2, initial_he3, initial_he4 = helper.initial_abundances(Zinit)
-    params = {'initial_mass': initial_mass, 'relax_mass': False, 'new_mass': initial_mass, 
-              'initial_z': Zinit, 'Zbase': Zinit, 'initial_y': Yinit, 'max_age': phase_max_age.pop(0)}
-    star.set(params, force=True)
-    proj.resume(logging=logging, parallel=parallel)
-
-
-
-    profiles, gyre_input_params = get_gyre_params(name, Zinit)
-    profiles = [profile.split('/')[-1] for profile in profiles]
-    os.environ["OMP_NUM_THREADS"] = "4"
-    proj.runGyre(gyre_in="../src/templates/gyre_rot_template_dipole.in", files=profiles, data_format="GYRE", 
-                logging=False, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
+def teff_helper(star):
+    delta_lgTeff_limit = star.get("delta_lgTeff_limit")
+    delta_lgTeff_hard_limit = star.get("delta_lgTeff_hard_limit")
+    delta_lgTeff_limit += delta_lgTeff_limit/10
+    delta_lgTeff_hard_limit += delta_lgTeff_hard_limit/10
+    star.set({"delta_lgTeff_limit": delta_lgTeff_limit, "delta_lgTeff_hard_limit": delta_lgTeff_hard_limit}, force=True)
 
 
 def get_gyre_params(name, zinit):
@@ -222,12 +155,13 @@ def get_gyre_params(name, zinit):
     
 
 if __name__ == "__main__":
-    M = [1.5]
-    Z = [0.010, 0.012, 0.014, 0.016, 0.018, 0.020]
+    M = [1.22]
+    Z = [0.004]
     prod = list(product(M, Z))
     M = [i[0] for i in prod]
     Z = [i[1] for i in prod]
-    V = 0
+    V = 20
+    uniform_rotation = True
     length = len(M)
     n_cores = os.cpu_count()
     n_procs = length
@@ -237,9 +171,8 @@ if __name__ == "__main__":
     with progress.Progress(*helper.progress_columns()) as progressbar:
         task = progressbar.add_task("[b i green]Running...", total=length)
         with Pool(n_procs, initializer=helper.unmute) as pool:
-            args = zip([f"tests_here/test_M{M[i]}_Z{Z[i]}" for i in range(len(M))], M, Z, repeat(V),
-                                    repeat(True), repeat(True), repeat(cpu_per_process))
-            # for _ in pool.istarmap(evo_star, args):
-            for _ in pool.istarmap(evolve2, args):
+            args = zip([f"test/test_M{M[i]}_Z{Z[i]}" for i in range(len(M))], M, Z, repeat(V),
+                                    repeat(True), repeat(True), repeat(cpu_per_process), repeat(uniform_rotation))
+            for _ in pool.istarmap(evo_star, args):
                 progressbar.advance(task)
 
