@@ -65,7 +65,7 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
                     if uniform_rotation:
                         star.set({"set_uniform_am_nu_non_rot": True}, force=True)
                     if retry > 0:
-                        if retry_type == "delta_lgTeff":
+                        if "delta_lgTeff" in retry_type:
                             teff_helper(star)
                         else:
                             star.set(convergence_helper, force=True)
@@ -93,7 +93,7 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
                         break
                     f.write(f"\nMass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s\n")
                     f.write(f"Failed at phase: {phase_name}\n")
-                    if retry_type == "delta_lgTeff":
+                    if "delta_lgTeff" in retry_type:
                         f.write(f"Retrying with \"T_eff helper\"\n")
                     else:
                         f.write(f"Retrying with \"convergence helper\"\n")
