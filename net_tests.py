@@ -17,6 +17,7 @@ import helper
 
 def evo_star(args):
     name, mass, metallicity, v_surf_init, net, logging, parallel, cpu_this_process, produce_track = args
+    trace = None
     start_time = time.time()
     ## Create/Resume working directory
     proj = ProjectOps(name)    
@@ -50,9 +51,11 @@ def evo_star(args):
 
         inlist_template = "templates/inlist_template"
         failed = True   ## Flag to check if the run failed, if it did, we retry with a different initial mass (M+dM)
-        retry = -1
-        dM = [0, 1e-3, -1e-3, 2e-3, -2e-3]
-        while retry<len(dM) and failed:
+        retry = 0
+        total_retries = 2
+        retry_type, terminate_type = None, None
+        uniform_rotation = True
+        while retry<=total_retries and failed:
             proj.clean()
             proj.make(silent=True)
             phases_params = helper.phases_params(initial_mass, Zinit)     
@@ -66,21 +69,24 @@ def evo_star(args):
                     print(phase_name)
                     star.set(phases_params[phase_name], force=True)
                     star.set('max_age', phase_max_age.pop(0), force=True)
+                    if uniform_rotation:
+                        star.set({"set_uniform_am_nu_non_rot": True}, force=True)
+                    if retry > 0:
+                        if "delta_lgTeff" in retry_type:
+                            teff_helper(star)
+                        else:
+                            star.set(convergence_helper, force=True)
                     if phase_name == "Pre-MS Evolution":
                         ## Initiate rotation
                         if v_surf_init>0:
                             star.set(rotation_init_params, force=True)
-                        if retry>=0:
-                            star.set(convergence_helper, force=True)
-                        star.set(net, force=True)
-                        proj.run(logging=logging, parallel=parallel)
+                        proj.run(logging=logging, parallel=parallel, trace=trace)
                     else:
-                        if phase_name == "Late Main Sequence Evolution":
-                            continue
-                        proj.resume(logging=logging, parallel=parallel)
+                        proj.resume(logging=logging, parallel=parallel, trace=trace)
                 except Exception as e:
                     failed = True
                     print(e)
+                    retry_type, terminate_type = helper.read_error(name)
                     break
                 except KeyboardInterrupt:
                     raise KeyboardInterrupt
@@ -88,15 +94,16 @@ def evo_star(args):
                     failed = False
             if failed:
                 retry += 1
-                initial_mass = mass + dM[retry]
                 with open(f"{name}/run.log", "a+") as f:
-                    if retry == len(dM)-1:
+                    if retry == total_retries:
                         f.write(f"Max retries reached. Model skipped!\n")
                         break
                     f.write(f"\nMass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s\n")
                     f.write(f"Failed at phase: {phase_name}\n")
-                    f.write(f"Retrying with dM = {dM[retry]}\n")
-                    f.write(f"New initial mass: {initial_mass}\n")
+                    if "delta_lgTeff" in retry_type:
+                        f.write(f"Retrying with \"T_eff helper\"\n")
+                    else:
+                        f.write(f"Retrying with \"convergence helper\"\n")
         end_time = time.time()
         with open(f"{name}/run.log", "a+") as f:
             f.write(f"Total time: {end_time-start_time} s\n\n")
@@ -114,6 +121,13 @@ def evo_star(args):
                 print("Gyre already ran for track ", name)
         except:
             print("Gyre failed for track ", name)
+
+def teff_helper(star):
+    delta_lgTeff_limit = star.get("delta_lgTeff_limit")
+    delta_lgTeff_hard_limit = star.get("delta_lgTeff_hard_limit")
+    delta_lgTeff_hard_limit += delta_lgTeff_hard_limit
+    star.set({"delta_lgTeff_limit": delta_lgTeff_limit, "delta_lgTeff_hard_limit": delta_lgTeff_hard_limit}, force=True)
+
 
 
 def get_gyre_params(name, zinit):
@@ -199,7 +213,7 @@ if __name__ == "__main__":
     cpu_per_process = n_cores//n_procs
     os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
     parallel = True
-    produce_track = False
+    produce_track = True
     if parallel:
         print(f"Total {length} tracks.")
         print(f"Running {n_procs} processes in parallel.")
