@@ -69,6 +69,7 @@ def evo_star(args):
                     print(phase_name)
                     star.set(phases_params[phase_name], force=True)
                     star.set('max_age', phase_max_age.pop(0), force=True)
+                    star.set(net, force=True)
                     if uniform_rotation:
                         star.set({"set_uniform_am_nu_non_rot": True}, force=True)
                     if retry > 0:
@@ -190,9 +191,9 @@ if __name__ == "__main__":
             {'change_net' : True, 'new_net_name' : 'cno_extras.net',
                     'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
                     'show_net_species_info' : False, 'show_net_reactions_info' : False},]
-    M_sample = [1.2, 2.2]
-    Z_sample = [0.001, 0.026]
-    V_sample = [0, 18]
+    M_sample = [1.4, 2]
+    Z_sample = [0.002, 0.025]
+    V_sample = [2, 18]
     combinations = list(itertools.product(M_sample, Z_sample, V_sample, nets_sample))
     
     M = []
@@ -220,7 +221,7 @@ if __name__ == "__main__":
         print(f"Using {cpu_per_process} cores per process.")
         with progress.Progress(*helper.progress_columns()) as progressbar:
             task = progressbar.add_task("[b i green]Running...", total=length)
-            with Pool(n_procs, initializer=helper.unmute) as pool:
+            with Pool(n_procs, initializer=helper.mute) as pool:
                 args = zip(names, M, Z, V, nets, repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track))
                 for _ in enumerate(pool.imap_unordered(evo_star, args)):
                     progressbar.advance(task)

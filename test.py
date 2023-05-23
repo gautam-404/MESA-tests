@@ -7,27 +7,31 @@ import os, shutil, psutil
 from itertools import repeat, product
 from multiprocessing import Pool
 import glob
+import time
 
 
 import helper
 
 
 
-def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_process, uniform_rotation, trace=None):
-    produce_track = True
-    print(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s")
-    ## Create working directory
+def evo_star(args):
+    name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_process, produce_track = args
+    trace = None
+    start_time = time.time()
+    ## Create/Resume working directory
     proj = ProjectOps(name)    
     initial_mass = mass
     Zinit = metallicity 
     if produce_track:
+        print(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s")
         proj.create(overwrite=True) 
         with open(f"{name}/run.log", "a+") as f:
             f.write(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s\n")
-            f.write(f"CPU: {cpu_this_process}\n\n")
+            f.write(f"CPU: {cpu_this_process}\n")
+            f.write(f"OMP_NUM_THREADS: {os.environ['OMP_NUM_THREADS']}\n\n")
         star = MesaAccess(name)
-        star.load_HistoryColumns("../MESA-grid/src/templates/history_columns.list")
-        star.load_ProfileColumns("../MESA-grid/src/templates/profile_columns.list")
+        star.load_HistoryColumns("templates/history_columns.list")
+        star.load_ProfileColumns("templates/profile_columns.list")
 
         initial_mass = mass
         Zinit = metallicity
@@ -39,15 +43,17 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
                                 'new_surface_rotation_v': v_surf_init,
                                 'relax_surface_rotation_v' : True,
                                 'num_steps_to_relax_rotation' : 100,  ## Default value is 100
-                                'relax_omega_max_yrs_dt' : 1.0E-5}
+                                'relax_omega_max_yrs_dt' : 1.0E-5,   ## Default value is 1.0E9
+                                'set_uniform_am_nu_non_rot': True}
         
         convergence_helper = {"convergence_ignore_equL_residuals" : True}  
 
-        inlist_template = "../MESA-grid/src/templates/inlist_template"
+        inlist_template = "templates/inlist_template"
         failed = True   ## Flag to check if the run failed, if it did, we retry with a different initial mass (M+dM)
         retry = 0
         total_retries = 2
         retry_type, terminate_type = None, None
+        uniform_rotation = True
         while retry<=total_retries and failed:
             proj.clean()
             proj.make(silent=True)
@@ -97,20 +103,30 @@ def evo_star(name, mass, metallicity, v_surf_init, logging, parallel, cpu_this_p
                         f.write(f"Retrying with \"T_eff helper\"\n")
                     else:
                         f.write(f"Retrying with \"convergence helper\"\n")
+        end_time = time.time()
+        with open(f"{name}/run.log", "a+") as f:
+            f.write(f"Total time: {end_time-start_time} s\n\n")
 
-    # profiles, gyre_input_params = get_gyre_params(name, Zinit)
-    # profiles = [profile.split('/')[-1] for profile in profiles]
-    # os.environ["OMP_NUM_THREADS"] = "4"
-    # proj.runGyre(gyre_in="../MESA-grid/src/templates/gyre_rot_template_dipole.in", files=profiles, data_format="GYRE", 
-    #             logging=False, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
-    
+    gyre = True
+    if gyre:
+        try:
+            if not os.path.exists(f"{name}/gyre.log"):
+                profiles, gyre_input_params = get_gyre_params(name, Zinit)
+                profiles = [profile.split('/')[-1] for profile in profiles]
+                os.environ["OMP_NUM_THREADS"] = "1"
+                proj.runGyre(gyre_in="templates/gyre_rot_template_dipole.in", files=profiles, data_format="GYRE", 
+                            logging=False, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
+            else:
+                print("Gyre already ran for track ", name)
+        except:
+            print("Gyre failed for track ", name)
 
 def teff_helper(star):
     delta_lgTeff_limit = star.get("delta_lgTeff_limit")
     delta_lgTeff_hard_limit = star.get("delta_lgTeff_hard_limit")
-    delta_lgTeff_limit += delta_lgTeff_limit/10
     delta_lgTeff_hard_limit += delta_lgTeff_hard_limit
     star.set({"delta_lgTeff_limit": delta_lgTeff_limit, "delta_lgTeff_hard_limit": delta_lgTeff_hard_limit}, force=True)
+
 
 
 def get_gyre_params(name, zinit):
@@ -158,15 +174,15 @@ def get_gyre_params(name, zinit):
     
 
 if __name__ == "__main__":
-    M = [1.22]
-    Z = [0.004]
+    M = [1]
+    Z = [0.002, 0.006, 0.01, 0.014, 0.018, 0.022, 0.026]
     prod = list(product(M, Z))
     M = [i[0] for i in prod]
     Z = [i[1] for i in prod]
-    V = 20
+    V = 0
     uniform_rotation = True
 
-    parallel = False
+    parallel = True
     if parallel:
         length = len(M)
         n_cores = psutil.cpu_count(logical=False)
@@ -179,7 +195,7 @@ if __name__ == "__main__":
             with Pool(n_procs, initializer=helper.unmute) as pool:
                 args = zip([f"test/test_M{M[i]}_Z{Z[i]}" for i in range(len(M))], M, Z, repeat(V),
                                         repeat(True), repeat(True), repeat(cpu_per_process), repeat(uniform_rotation))
-                for _ in pool.istarmap(evo_star, args):
+                for _ in enumerate(pool.imap_unordered(evo_star, args)):
                     progressbar.advance(task)
     else:
         trace = ["surf_avg_v_rot", "surf_avg_omega_div_omega_crit"]
