@@ -83,6 +83,8 @@ def evo_star(args):
                             star.set(rotation_init_params, force=True)
                         proj.run(logging=logging, parallel=parallel, trace=trace)
                     else:
+                        if phase_name == "Late Main Sequence Evolution":
+                            continue
                         proj.resume(logging=logging, parallel=parallel, trace=trace)
                 except Exception as e:
                     failed = True
@@ -109,7 +111,7 @@ def evo_star(args):
         with open(f"{name}/run.log", "a+") as f:
             f.write(f"Total time: {end_time-start_time} s\n\n")
 
-    gyre = True
+    gyre = False
     if gyre:
         try:
             if not os.path.exists(f"{name}/gyre.log"):
@@ -190,10 +192,16 @@ if __name__ == "__main__":
                     'show_net_species_info' : False, 'show_net_reactions_info' : False},
             {'change_net' : True, 'new_net_name' : 'cno_extras.net',
                     'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
+            {'change_net' : True, 'new_net_name' : 'pp_and_hot_cno.net',
+                    'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
                     'show_net_species_info' : False, 'show_net_reactions_info' : False},]
-    M_sample = [1.4, 2]
-    Z_sample = [0.002, 0.025]
-    V_sample = [2, 18]
+    # M_sample = [1.4, 2]
+    # Z_sample = [0.002, 0.025]
+
+    M_sample = np.arange(1.2, 2.2, 0.2)
+    Z_sample = np.arange(0.001, 0.026, 0.)
+    V_sample = [0]
     combinations = list(itertools.product(M_sample, Z_sample, V_sample, nets_sample))
     
     M = []
