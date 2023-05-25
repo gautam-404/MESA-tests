@@ -111,7 +111,7 @@ def evo_star(args):
         with open(f"{name}/run.log", "a+") as f:
             f.write(f"Total time: {end_time-start_time} s\n\n")
 
-    gyre = False
+    gyre = True
     if gyre:
         try:
             if not os.path.exists(f"{name}/gyre.log"):
@@ -196,11 +196,8 @@ if __name__ == "__main__":
             {'change_net' : True, 'new_net_name' : 'pp_and_hot_cno.net',
                     'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
                     'show_net_species_info' : False, 'show_net_reactions_info' : False},]
-    # M_sample = [1.4, 2]
-    # Z_sample = [0.002, 0.025]
-
-    M_sample = np.arange(1.2, 2.2, 0.2)
-    Z_sample = np.arange(0.001, 0.026, 0.)
+    M_sample = [1.4, 2]
+    Z_sample = [0.002, 0.025]
     V_sample = [0]
     combinations = list(itertools.product(M_sample, Z_sample, V_sample, nets_sample))
     
