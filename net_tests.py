@@ -189,15 +189,10 @@ if __name__ == "__main__":
                     'show_net_species_info' : False, 'show_net_reactions_info' : False},
             {'change_net' : True, 'new_net_name' : 'pp_and_cno_extras.net',  
                     'change_initial_net' : False, 'adjust_abundances_for_new_isos' : True,
-                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
-            {'change_net' : True, 'new_net_name' : 'cno_extras.net',
-                    'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
-                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
-            {'change_net' : True, 'new_net_name' : 'pp_and_hot_cno.net',
-                    'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
-                    'show_net_species_info' : False, 'show_net_reactions_info' : False},]
-    M_sample = [1.4, 2]
-    Z_sample = [0.002, 0.025]
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False}]
+    # M_sample = [1.7]
+    M_sample = np.arange(1.4, 2, 0.05)
+    Z_sample = [0.024]
     V_sample = [0]
     combinations = list(itertools.product(M_sample, Z_sample, V_sample, nets_sample))
     
