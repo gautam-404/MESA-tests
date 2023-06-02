@@ -33,19 +33,21 @@ def evo_star(args):
         star.load_HistoryColumns("templates/history_columns.list")
         star.load_ProfileColumns("templates/profile_columns.list")
         
-        # overshoot_params = {'overshoot_scheme(1)': 'exponential', #exponential, step, other
-        #                     'overshoot_zone_type(1)': 'burn_H', #burn_H, burn_He, burn_Z, nonburn, any
-        #                     'overshoot_zone_loc(1)': 'core', #core, shell, any
-        #                     'overshoot_bdy_loc(1)': 'top', #top, bottom, any
-        #                     'overshoot_f(1)': 0.01, #0.022
-        #                     'overshoot_f0(1)': 0.002, #0.002
-        #                     'overshoot_scheme(2)': 'exponential', #exponential, step, other
-        #                     'overshoot_zone_type(2)': 'nonburn', #burn_H, burn_He, burn_Z, nonburn, any
-        #                     'overshoot_zone_loc(2)': 'shell', #core, shell, any
-        #                     'overshoot_bdy_loc(2)': 'any', #top, bottom, any
-        #                     'overshoot_f(2)': 0.001, #0.006
-        #                     'overshoot_f0(2)': 0.001, #0.001
-        #                     'overshoot_D_min': 1.0E-2}
+        overshoot_params = {'overshoot_scheme(1)': 'exponential', #exponential, step, other
+                            'overshoot_zone_type(1)': 'burn_H', #burn_H, burn_He, burn_Z, nonburn, any
+                            'overshoot_zone_loc(1)': 'core', #core, shell, any
+                            'overshoot_bdy_loc(1)': 'top', #top, bottom, any
+                            'overshoot_f(1)': 0.022, #0.022
+                            'overshoot_f0(1)': 0.002, #0.002
+                            'overshoot_scheme(2)': 'exponential', #exponential, step, other
+                            'overshoot_zone_type(2)': 'nonburn', #burn_H, burn_He, burn_Z, nonburn, any
+                            'overshoot_zone_loc(2)': 'shell', #core, shell, any
+                            'overshoot_bdy_loc(2)': 'any', #top, bottom, any
+                            'overshoot_f(2)': 0.006, #0.006
+                            'overshoot_f0(2)': 0.001, #0.001
+                            'overshoot_D_min': 1.0E-2,
+                            ##mixing
+                            'do_conv_premix': True}
 
         initial_mass = mass
         Zinit = metallicity

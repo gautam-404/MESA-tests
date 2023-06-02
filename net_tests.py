@@ -191,7 +191,7 @@ if __name__ == "__main__":
                     'change_initial_net' : False, 'adjust_abundances_for_new_isos' : True,
                     'show_net_species_info' : False, 'show_net_reactions_info' : False}]
     # M_sample = [1.7]
-    M_sample = np.arange(1.4, 2, 0.05)
+    M_sample = [1.4]
     Z_sample = [0.024]
     V_sample = [0]
     combinations = list(itertools.product(M_sample, Z_sample, V_sample, nets_sample))
