@@ -4,3 +4,5 @@
 test/*
 jupyter.log
 test*/
+
+*.csv

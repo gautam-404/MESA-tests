@@ -83,8 +83,9 @@ def evo_star(args):
                             star.set(rotation_init_params, force=True)
                         proj.run(logging=logging, parallel=parallel, trace=trace)
                     else:
-                        if phase_name == "Late Main Sequence Evolution":
-                            continue
+                        # if phase_name == "Late Main Sequence Evolution":
+                        #     print("Phase skipped")
+                        #     continue
                         proj.resume(logging=logging, parallel=parallel, trace=trace)
                 except Exception as e:
                     failed = True
@@ -213,7 +214,7 @@ if __name__ == "__main__":
     n_procs = length
     cpu_per_process = n_cores//n_procs
     os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
-    parallel = True
+    parallel = False
     produce_track = True
     if parallel:
         print(f"Total {length} tracks.")
@@ -226,5 +227,7 @@ if __name__ == "__main__":
                 for _ in enumerate(pool.imap_unordered(evo_star, args)):
                     progressbar.advance(task)
     else:
+        os.environ["OMP_NUM_THREADS"] = '8'
         for i in range(len(nets)):
-            evo_star(f"test/test_net{i}", M[i], Z, V, nets[i], True, True, cpu_per_process, produce_track)
+            evo_star((names[i], M[i], Z[i], V[i], nets[i], True, True, cpu_per_process, produce_track))
+            os.chdir("/Users/anujgautam/Documents/MESA-workspace/MESA-tests/")
