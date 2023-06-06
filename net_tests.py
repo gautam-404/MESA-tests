@@ -115,14 +115,14 @@ def evo_star(args):
     gyre = True
     if gyre:
         try:
-            if not os.path.exists(f"{name}/gyre.log"):
-                profiles, gyre_input_params = get_gyre_params(name, Zinit)
-                profiles = [profile.split('/')[-1] for profile in profiles]
-                os.environ["OMP_NUM_THREADS"] = "1"
-                proj.runGyre(gyre_in="templates/gyre_rot_template_dipole.in", files=profiles, data_format="GYRE", 
-                            logging=False, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
-            else:
-                print("Gyre already ran for track ", name)
+            # if not os.path.exists(f"{name}/gyre.log"):
+            profiles, gyre_input_params = get_gyre_params(name, Zinit)
+            profiles = [profile.split('/')[-1] for profile in profiles]
+            os.environ["OMP_NUM_THREADS"] = "1"
+            proj.runGyre(gyre_in="templates/gyre_rot_template_dipole.in", files=profiles, data_format="GYRE", 
+                        logging=False, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
+            # else:
+            #     print("Gyre already ran for track ", name)
         except:
             print("Gyre failed for track ", name)
 
@@ -143,7 +143,7 @@ def get_gyre_params(name, zinit):
     h["Zfrac"] = 1 - h["average_h1"] - h["average_he4"]
     h["Myr"] = h["star_age"]*1.0E-6
     h["density"] = h["star_mass"]/np.power(10,h["log_R"])**3
-    gyre_start_age = 2.0E6
+    gyre_start_age = 1e6
     gyre_intake = h.query(f"Myr > {gyre_start_age/1.0E6}")
     profiles = []
     min_freqs = []
@@ -190,6 +190,9 @@ if __name__ == "__main__":
                     'show_net_species_info' : False, 'show_net_reactions_info' : False},
             {'change_net' : True, 'new_net_name' : 'pp_and_cno_extras.net',  
                     'change_initial_net' : False, 'adjust_abundances_for_new_isos' : True,
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
+            {'change_net' : True, 'new_net_name' : 'pp_and_hot_cno.net',  
+                    'change_initial_net' : False, 'adjust_abundances_for_new_isos' : True,
                     'show_net_species_info' : False, 'show_net_reactions_info' : False}]
     M_sample = [1.7]
     # M_sample = [1.4]
@@ -222,7 +225,7 @@ if __name__ == "__main__":
         print(f"Using {cpu_per_process} cores per process.")
         with progress.Progress(*helper.progress_columns()) as progressbar:
             task = progressbar.add_task("[b i green]Running...", total=length)
-            with Pool(n_procs, initializer=helper.mute) as pool:
+            with Pool(n_procs, initializer=helper.unmute) as pool:
                 args = zip(names, M, Z, V, nets, repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track))
                 for _ in enumerate(pool.imap_unordered(evo_star, args)):
                     progressbar.advance(task)
