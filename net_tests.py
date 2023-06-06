@@ -191,9 +191,9 @@ if __name__ == "__main__":
             {'change_net' : True, 'new_net_name' : 'pp_and_cno_extras.net',  
                     'change_initial_net' : False, 'adjust_abundances_for_new_isos' : True,
                     'show_net_species_info' : False, 'show_net_reactions_info' : False}]
-    # M_sample = [1.7]
-    M_sample = [1.4]
-    Z_sample = [0.024]
+    M_sample = [1.7]
+    # M_sample = [1.4]
+    Z_sample = [0.015]
     V_sample = [0]
     combinations = list(itertools.product(M_sample, Z_sample, V_sample, nets_sample))
     
@@ -214,8 +214,8 @@ if __name__ == "__main__":
     n_procs = length
     cpu_per_process = n_cores//n_procs
     os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
-    parallel = False
-    produce_track = True
+    parallel = True
+    produce_track = False
     if parallel:
         print(f"Total {length} tracks.")
         print(f"Running {n_procs} processes in parallel.")
