@@ -60,9 +60,7 @@ def evo_star(args):
             proj.make(silent=True)
             phases_params = helper.phases_params(initial_mass, Zinit)     
             phases_names = phases_params.keys()
-            # terminal_age = float(np.round(2500/initial_mass**2.5,1)*1.0E6)
-            terminal_age = None
-            phase_max_age = [1E6, 1E7, 4.0E7, terminal_age]         ## 1E7 is the age when we switch to a coarser timestep
+            phase_max_age = [1E6, 1E7, 4.0E7, "TAMS", "ERGB"]         ## 1E7 is the age when we switch to a coarser timestep
             for phase_name in phases_names:
                 try:
                     ## Run from inlist template by setting parameters for each phase
@@ -70,11 +68,13 @@ def evo_star(args):
                     print(phase_name)
                     star.set(phases_params[phase_name], force=True)
                     max_age = phase_max_age.pop(0)
-                    if max_age is not None:
+                    if isinstance(max_age, float):
                         star.set('max_age', max_age, force=True)
-                    else:
+                    elif max_age == "TAMS":
                         tams_params = {'xa_central_lower_limit_species(1)' : 'h1',
                                        "xa_central_lower_limit(1)" : 0.01}
+                    elif max_age == "ERGB":
+                        ergb_params = {'Teff_lower_limit' : 5000}
                         star.set(tams_params, force=True)
                     star.set(net, force=True)
                     if uniform_rotation:
@@ -88,12 +88,12 @@ def evo_star(args):
                         ## Initiate rotation
                         if v_surf_init>0:
                             star.set(rotation_init_params, force=True)
-                        proj.run(logging=logging, parallel=parallel, trace=trace)
+                        print(f"Age: {proj.run(logging=logging, parallel=parallel, trace=trace):.2e} yrs")
                     else:
                         # if phase_name == "Late Main Sequence Evolution":
                         #     print("Phase skipped")
                         #     continue
-                        proj.resume(logging=logging, parallel=parallel, trace=trace)
+                        print(f"Age: {proj.resume(logging=logging, parallel=parallel, trace=trace):.2e} yrs")
                 except Exception as e:
                     failed = True
                     print(e)
@@ -237,7 +237,7 @@ if __name__ == "__main__":
                 for _ in enumerate(pool.imap_unordered(evo_star, args)):
                     progressbar.advance(task)
     else:
-        os.environ["OMP_NUM_THREADS"] = '8'
+        os.environ["OMP_NUM_THREADS"] = '10'
         for i in range(len(nets)):
             evo_star((names[i], M[i], Z[i], V[i], nets[i], True, True, cpu_per_process, produce_track))
             os.chdir("/Users/anujgautam/Documents/MESA-workspace/MESA-tests/")

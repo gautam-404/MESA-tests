@@ -107,7 +107,22 @@ def phases_params(initial_mass, Zinit):
                     'trace_history_value_name(6)': 'log_R',
                     'trace_history_value_name(7)': 'star_mass'},
 
-                'Late Main Sequence Evolution' :
+                'Late Main Sequence Evolution 1' :
+                    {'Zbase': Zinit, 'change_initial_net' : False, 'show_net_species_info' : False, 'show_net_reactions_info' : False,
+                    'max_years_for_timestep' : 1e8,
+                    'delta_lgTeff_limit' : 0.0006, 'delta_lgTeff_hard_limit' : 0.006,
+                    'delta_lgL_limit' : 0.002, 'delta_lgL_hard_limit' : 0.02,
+                    'write_header_frequency': 1, 'history_interval': 1, 'terminal_interval': 1, 'profile_interval': 1,
+                    'num_trace_history_values': 7,
+                    'trace_history_value_name(1)': 'surf_avg_v_rot',
+                    'trace_history_value_name(2)': 'surf_avg_omega_div_omega_crit',
+                    'trace_history_value_name(3)': 'log_total_angular_momentum',
+                    'trace_history_value_name(4)': 'surf_escape_v',
+                    'trace_history_value_name(5)': 'log_g',
+                    'trace_history_value_name(6)': 'log_R',
+                    'trace_history_value_name(7)': 'star_mass'},
+
+                'Late Main Sequence Evolution 2' :
                     {'Zbase': Zinit, 'change_initial_net' : False, 'show_net_species_info' : False, 'show_net_reactions_info' : False,
                     'max_years_for_timestep' : 1e8,
                     'delta_lgTeff_limit' : 0.0006, 'delta_lgTeff_hard_limit' : 0.006,
