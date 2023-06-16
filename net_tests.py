@@ -60,7 +60,8 @@ def evo_star(args):
             proj.make(silent=True)
             phases_params = helper.phases_params(initial_mass, Zinit)     
             phases_names = phases_params.keys()
-            terminal_age = float(np.round(2500/initial_mass**2.5,1)*1.0E6)
+            # terminal_age = float(np.round(2500/initial_mass**2.5,1)*1.0E6)
+            terminal_age = None
             phase_max_age = [1E6, 1E7, 4.0E7, terminal_age]         ## 1E7 is the age when we switch to a coarser timestep
             for phase_name in phases_names:
                 try:
@@ -68,7 +69,13 @@ def evo_star(args):
                     star.load_InlistProject(inlist_template)
                     print(phase_name)
                     star.set(phases_params[phase_name], force=True)
-                    star.set('max_age', phase_max_age.pop(0), force=True)
+                    max_age = phase_max_age.pop(0)
+                    if max_age is not None:
+                        star.set('max_age', max_age, force=True)
+                    else:
+                        tams_params = {'xa_central_lower_limit_species(1)' : 'h1',
+                                       "xa_central_lower_limit(1)" : 0.01}
+                        star.set(tams_params, force=True)
                     star.set(net, force=True)
                     if uniform_rotation:
                         star.set({"set_uniform_am_nu_non_rot": True}, force=True)
@@ -217,8 +224,8 @@ if __name__ == "__main__":
     n_procs = length
     cpu_per_process = n_cores//n_procs
     os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
-    parallel = True
-    produce_track = False
+    parallel = False
+    produce_track = True
     if parallel:
         print(f"Total {length} tracks.")
         print(f"Running {n_procs} processes in parallel.")
