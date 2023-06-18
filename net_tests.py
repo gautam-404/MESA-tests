@@ -72,7 +72,7 @@ def evo_star(args):
                         star.set('max_age', max_age, force=True)
                     elif max_age == "TAMS":
                         tams_params = {'xa_central_lower_limit_species(1)' : 'h1',
-                                       "xa_central_lower_limit(1)" : 0.05}
+                                       "xa_central_lower_limit(1)" : 0.01}
                         star.set(tams_params, force=True)
                     elif max_age == "ERGB":
                         ergb_params = {'Teff_lower_limit' : 5000}
