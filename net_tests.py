@@ -72,10 +72,11 @@ def evo_star(args):
                         star.set('max_age', max_age, force=True)
                     elif max_age == "TAMS":
                         tams_params = {'xa_central_lower_limit_species(1)' : 'h1',
-                                       "xa_central_lower_limit(1)" : 0.01}
+                                       "xa_central_lower_limit(1)" : 0.05}
+                        star.set(tams_params, force=True)
                     elif max_age == "ERGB":
                         ergb_params = {'Teff_lower_limit' : 5000}
-                        star.set(tams_params, force=True)
+                        star.set(ergb_params, force=True)
                     star.set(net, force=True)
                     if uniform_rotation:
                         star.set({"set_uniform_am_nu_non_rot": True}, force=True)
@@ -237,7 +238,7 @@ if __name__ == "__main__":
                 for _ in enumerate(pool.imap_unordered(evo_star, args)):
                     progressbar.advance(task)
     else:
-        os.environ["OMP_NUM_THREADS"] = '10'
+        os.environ["OMP_NUM_THREADS"] = '4'
         for i in range(len(nets)):
-            evo_star((names[i], M[i], Z[i], V[i], nets[i], True, True, cpu_per_process, produce_track))
+            evo_star((names[i], M[i], Z[i], V[i], nets[i], True, False, cpu_per_process, produce_track))
             os.chdir("/Users/anujgautam/Documents/MESA-workspace/MESA-tests/")
