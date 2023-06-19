@@ -205,7 +205,7 @@ if __name__ == "__main__":
         Z.append(z)
         V.append(v)
         vars.append(var)
-        names.append(f"../test/m{m}_z{z}_v{v}_var{var}")
+        names.append(f"test/m{m}_z{z}_v{v}_var{var}")
 
     length = len(vars)
     n_cores = psutil.cpu_count(logical=False)
