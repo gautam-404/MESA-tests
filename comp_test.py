@@ -187,10 +187,10 @@ def get_gyre_params(name, zinit):
     
 
 if __name__ == "__main__":
-    mesh_delta_coeff = np.arange(0.1, 1.7, 0.2)
-    var_sample = [{"mesh_delta_coeff":c} for c in mesh_delta_coeff]
+    var_name = "mesh_delta_coeff"
+    var_range = np.arange(0.1, 1.7, 0.2)
+    var_sample = [{var_name:c} for c in var_range]
     M_sample = [1.7]
-    # M_sample = [1.4]
     Z_sample = [0.015]
     V_sample = [0]
     combinations = list(itertools.product(M_sample, Z_sample, V_sample, var_sample))
@@ -200,12 +200,14 @@ if __name__ == "__main__":
     V = []
     vars = []
     names = []
+    i = 1
     for m, z, v, var in combinations:
         M.append(m)
         Z.append(z)
         V.append(v)
         vars.append(var)
-        names.append(f"test/m{m}_z{z}_v{v}_var{var}")
+        names.append(f"test/m{m}_z{z}_v{v}_var{i}")
+        i += 1
 
     length = len(vars)
     n_cores = psutil.cpu_count(logical=False)

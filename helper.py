@@ -6,6 +6,8 @@ import tarfile
 import numpy as np
 from rich import progress, live, console, panel, prompt, print
 from contextlib import contextmanager
+import pandas as pd
+from scipy.stats import linregress
 
 
 Y_sun_phot = 0.2485 # Asplund+2009
@@ -280,3 +282,94 @@ def read_error(name):
     print(retry_type, terminate_type)
     return retry_type, terminate_type
 
+
+### Testing helpers
+
+def get_data(logs_dir):
+    freqs = []
+    profs = []
+    n_profs = []
+    # prof_index = pd.read_table(f"{logs_dir}/profiles.index", skiprows=1, sep='\s+')
+    prof_index = np.loadtxt(f"{logs_dir}/profiles.index", skiprows=1, dtype=int)
+
+    for f in sorted(glob.glob(f"{logs_dir}/profile*.data.GYRE"), 
+                    key=lambda x: int(os.path.basename(x).split('.')[0].split('profile')[1])):
+        profs.append(pd.read_table(f, skiprows=5, sep='\s+'))
+
+    for f in sorted(glob.glob(f"{logs_dir}/profile*-freqs.dat"), 
+                    key=lambda x: int(os.path.basename(x).split('.')[0].split('profile')[1].split('-')[0])):
+        freqs.append(pd.read_table(f, skiprows=5, sep='\s+'))
+        n_profs.append(int(f.split('profile')[-1].split('-')[0]))
+    hist = pd.read_table(glob.glob(f"{logs_dir}/history.data")[0], skiprows=5, sep='\s+')
+    return hist, freqs, profs, n_profs, prof_index
+
+
+def fit_radial(ts, degree=0):
+    """
+    Fits a straight line to the radial mode frequencies. Optionally, can be used on non-radial modes.
+    Only modes with radial orders 5-9 are used, as the ridges should be vertical here.
+    
+    Input: Theoretical (or observed) spectrum in pandas df format; mode degree to be used (default 0 = radial)
+    Output: The length of the series used, and the slope, intercept, r_value, p_value, and std_err of the line.
+    """
+    n_min, n_max = 5, 9
+    try:
+        vert_freqs = ts.query("n_g == 0").query(f"l=={degree}").query(f"n_pg>={n_min}").query(f"n_pg<={n_max}")[["n_pg","Re(freq)"]].values
+    except:
+        vert_freqs = ts.query(f"l_obs=={degree}").query(f"n_obs>={n_min}").query(f"n_obs<={n_max}")[["n_obs","f_obs"]].values
+    if len(vert_freqs>0):
+        slope, intercept, r_value, p_value, std_err = linregress(vert_freqs[:,0], vert_freqs[:,1])
+    else:
+        slope, intercept, r_value, p_value, std_err = np.zeros(5)
+    return len(vert_freqs), slope, intercept, r_value, p_value, std_err
+
+def model_epsilon(ts):
+    """
+    Calls the fit_radial function to determine the epsilon value for a star's pulsations.
+    
+    Input: Theoretical (or observed) spectrum in pandas df format.
+    Output: Epsilon
+    """
+    length_rad, slope, intercept, r_value, p_value, std_err = fit_radial(ts, degree=0)
+    eps = intercept/slope
+    if length_rad < 3:
+        length_dip, slope, intercept, r_value, p_value, std_err = fit_radial(ts, degree=1)
+        if length_dip > length_rad:
+            eps = intercept/slope - 0.5 # take the ell=1 values and subtract 0.5 to equal epsilon (ell=0)
+    return np.round(eps, 3)
+
+def model_Dnu(ts):
+    """
+    Calls the fit_radial function to determine the Delta nu value for a star's pulsations.
+    
+    Input: Theoretical (or observed) spectrum in pandas df format.
+    Output: Delta nu
+    """
+    length_rad, slope, intercept, r_value, p_value, std_err = fit_radial(ts, degree=0)
+    if length_rad < 3:
+        length_dip, slope, intercept, r_value, p_value, std_err = fit_radial(ts, degree=1)
+        if length_rad > length_dip:
+            # redo radial
+            length_rad, slope, intercept, r_value, p_value, std_err = fit_radial(ts, degree=0)
+    Dnu = slope
+    return np.round(Dnu, 3)
+
+def get_fit(l, freq):
+    Dnu = model_Dnu(freq)
+    epsilon = model_epsilon(freq)
+    return Dnu, epsilon
+
+def model_nlm(ts):
+    """
+    Creates strings that uniquely identify each mode by the mode IDs.
+    
+    Input: theoretical spectrum (a pandas df)
+    Output: theoretical spectrum (a pandas df) with the string column added.
+    """
+    id_strings = []
+    if "m" not in ts.columns:
+        ts["m"] = np.zeros(len(ts))
+    for i,row in ts.iterrows():
+        id_strings.append(str(int(row["n_pg"]))+str(int(row["l"]))+str(int(row["m"])))
+    ts["nlm"] = id_strings
+    return ts
