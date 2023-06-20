@@ -188,7 +188,8 @@ def get_gyre_params(name, zinit):
 
 if __name__ == "__main__":
     var_name = "mesh_delta_coeff"
-    var_range = np.arange(0.1, 1.7, 0.2)
+    # var_range = np.arange(0.1, 1.7, 0.2)
+    var_range = [0.1, 1.0]
     var_sample = [{var_name:c} for c in var_range]
     M_sample = [1.7]
     Z_sample = [0.015]
@@ -206,7 +207,7 @@ if __name__ == "__main__":
         Z.append(z)
         V.append(v)
         vars.append(var)
-        names.append(f"test/m{m}_z{z}_v{v}_var{i}")
+        names.append(f"test1/m{m}_z{z}_v{v}_var{i}")
         i += 1
 
     length = len(vars)
@@ -222,7 +223,7 @@ if __name__ == "__main__":
         print(f"Using {cpu_per_process} cores per process.")
         with progress.Progress(*helper.progress_columns()) as progressbar:
             task = progressbar.add_task("[b i green]Running...", total=length)
-            with Pool(n_procs, initializer=helper.mute) as pool:
+            with Pool(n_procs, initializer=helper.unmute) as pool:
                 args = zip(names, M, Z, V, vars, repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track))
                 for _ in enumerate(pool.imap_unordered(evo_star, args)):
                     progressbar.advance(task)
