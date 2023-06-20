@@ -187,9 +187,10 @@ def get_gyre_params(name, zinit):
     
 
 if __name__ == "__main__":
-    var_name = "mesh_delta_coeff"
+    var_name = "convergence_ignore_equL_residuals"
     # var_range = np.arange(0.1, 1.7, 0.2)
-    var_range = [0.1, 1.0]
+    # var_range = [0.1, 1.0]
+    var_range = [True, False]
     var_sample = [{var_name:c} for c in var_range]
     M_sample = [1.7]
     Z_sample = [0.015]
