@@ -59,15 +59,21 @@ def evo_star(args):
             proj.clean()
             proj.make(silent=True)
             phases_params = helper.phases_params(initial_mass, Zinit)     
-            phases_names = phases_params.keys()
-            phase_max_age = [1E6, 1E7, 4.0E7, "TAMS", "ERGB"]         ## 1E7 is the age when we switch to a coarser timestep
+            phases_names = list(phases_params.keys())
+            phases_names.pop(-1)
+            # phase_max_age = [1E6, 1E7, 4.0E7, "TAMS", "ERGB"]         ## 1E7 is the age when we switch to a coarser timestep
+            phase_max_age = [1E6, 1E7, 4.0E7, 7e8]         ## 1E7 is the age when we switch to a coarser timestep
+            
             for phase_name in phases_names:
                 try:
                     ## Run from inlist template by setting parameters for each phase
                     star.load_InlistProject(inlist_template)
                     print(phase_name)
                     star.set(phases_params[phase_name], force=True)
-                    star.set({"max_years_for_timestep" : 1e3}, force=True)
+                    if "Late Main Sequence Evolution" in phase_name:
+                        star.set({"max_years_for_timestep" : 1e6}, force=True)
+                    else:
+                        star.set({"max_years_for_timestep" : 1e5}, force=True)
                     max_age = phase_max_age.pop(0)
                     if isinstance(max_age, float):
                         star.set('max_age', max_age, force=True)
@@ -188,11 +194,14 @@ def get_gyre_params(name, zinit):
     
 
 if __name__ == "__main__":
-    var_name = "convergence_ignore_equL_residuals"
+    # var_name = "convergence_ignore_equL_residuals"
+    # var_range = [True, False]
+
+    var_name = "mesh_delta_coeff"
     # var_range = np.arange(0.1, 1.7, 0.2)
-    # var_range = [0.1, 1.0]
-    var_range = [True, False]
+    var_range = [1.25]
     var_sample = [{var_name:c} for c in var_range]
+
     M_sample = [1.7]
     Z_sample = [0.015]
     V_sample = [0]
