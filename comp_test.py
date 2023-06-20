@@ -67,6 +67,7 @@ def evo_star(args):
                     star.load_InlistProject(inlist_template)
                     print(phase_name)
                     star.set(phases_params[phase_name], force=True)
+                    star.set({"max_years_for_timestep" : 1e3}, force=True)
                     max_age = phase_max_age.pop(0)
                     if isinstance(max_age, float):
                         star.set('max_age', max_age, force=True)
