@@ -111,7 +111,7 @@ def phases_params(initial_mass, Zinit):
 
                 'Late Main Sequence Evolution 1' :
                     {'Zbase': Zinit, 'change_initial_net' : False, 'show_net_species_info' : False, 'show_net_reactions_info' : False,
-                    'max_years_for_timestep' : 1e8,
+                    'max_years_for_timestep' : 1e7,
                     'delta_lgTeff_limit' : 0.0006, 'delta_lgTeff_hard_limit' : 0.006,
                     'delta_lgL_limit' : 0.002, 'delta_lgL_hard_limit' : 0.02,
                     'write_header_frequency': 1, 'history_interval': 1, 'terminal_interval': 1, 'profile_interval': 1,
@@ -126,7 +126,7 @@ def phases_params(initial_mass, Zinit):
 
                 'Late Main Sequence Evolution 2' :
                     {'Zbase': Zinit, 'change_initial_net' : False, 'show_net_species_info' : False, 'show_net_reactions_info' : False,
-                    'max_years_for_timestep' : 1e8,
+                    'max_years_for_timestep' : 1e7,
                     'delta_lgTeff_limit' : 0.0006, 'delta_lgTeff_hard_limit' : 0.006,
                     'delta_lgL_limit' : 0.002, 'delta_lgL_hard_limit' : 0.02,
                     'write_header_frequency': 1, 'history_interval': 1, 'terminal_interval': 1, 'profile_interval': 1,

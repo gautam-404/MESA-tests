@@ -60,20 +60,14 @@ def evo_star(args):
             proj.make(silent=True)
             phases_params = helper.phases_params(initial_mass, Zinit)     
             phases_names = list(phases_params.keys())
-            phases_names.pop(-1)
-            # phase_max_age = [1E6, 1E7, 4.0E7, "TAMS", "ERGB"]         ## 1E7 is the age when we switch to a coarser timestep
-            phase_max_age = [1E6, 1E7, 4.0E7, 7e8]         ## 1E7 is the age when we switch to a coarser timestep
-            
+            phase_max_age = [1E6, 1E7, 4.0E7, "TAMS", "ERGB"]         ## 1E7 is the age when we switch to a coarser timestep
             for phase_name in phases_names:
                 try:
                     ## Run from inlist template by setting parameters for each phase
                     star.load_InlistProject(inlist_template)
                     print(phase_name)
                     star.set(phases_params[phase_name], force=True)
-                    if "Late Main Sequence Evolution" in phase_name:
-                        star.set({"max_years_for_timestep" : 1e6}, force=True)
-                    else:
-                        star.set({"max_years_for_timestep" : 1e5}, force=True)
+                    star.set({"profile_interval":20, "max_num_profile_models": 2000})
                     max_age = phase_max_age.pop(0)
                     if isinstance(max_age, float):
                         star.set('max_age', max_age, force=True)
