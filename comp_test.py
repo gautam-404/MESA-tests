@@ -60,8 +60,8 @@ def evo_star(args):
             proj.make(silent=True)
             phases_params = helper.phases_params(initial_mass, Zinit)     
             phases_names = list(phases_params.keys())
-            phase_max_age = [1E6, 1E7, 4.0E7, "TAMS", "ERGB"]         ## 1E7 is the age when we switch to a coarser timestep
-            max_timestep = [1E4, 1E5, 1E5, 1E6, 1E6]
+            phase_max_age = [1E7, 4.0E7, "TAMS", "ERGB"]         ## 1E7 is the age when we switch to a coarser timestep
+            max_timestep = [1E4, 1E5, 2E6, 2E6]
             for phase_name in phases_names:
                 try:
                     ## Run from inlist template by setting parameters for each phase
