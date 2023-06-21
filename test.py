@@ -61,7 +61,7 @@ def evo_star(args):
         inlist_template = "./src/templates/inlist_template"
         failed = True   ## Flag to check if the run failed, if it did, we retry with a different initial mass (M+dM)
         retry = 0
-        total_retries = 4
+        total_retries = 2
         retry_type, terminate_type = None, None
         while retry<=total_retries and failed:
             proj.clean()
@@ -69,8 +69,8 @@ def evo_star(args):
             phases_params = helper.phases_params(initial_mass, Zinit)     
             phases_names = phases_params.keys()
             stopping_conditions = [{"stop_at_phase_PreMS":True}, {"stop_at_phase_ZAMS":True}, {"stop_at_phase_TAMS":True}, "ERGB"]
-            max_timestep = [1E4, 1E5, 2E6, 2E6]
-            profile_interval = [1, 2, 2, 2]
+            max_timestep = [1E4, 1E5, 1E6, 1E6]
+            profile_interval = [1, 2, 5, 5]
             for phase_name in phases_names:
                 try:
                     ## Run from inlist template by setting parameters for each phase
@@ -168,16 +168,17 @@ def teff_helper(star, retry):
 
 
 if __name__ == "__main__":
-    nf = 2
+    nf = 1
     folder = f"test{nf}"
     parallel = True
-    use_ray = True
+    use_ray = False
     produce_track = True
-    cpu_per_process = 2
+    cpu_per_process = 3
 
     M_sample = [1.3, 1.5, 1.7, 1.9, 2.1]
     Z_sample = [0.001, 0.004, 0.007, 0.01, 0.013, 0.015, 0.018, 0.021]
-    V_sample = [0, 5, 10, 15, 20]
+    # V_sample = [0, 5, 10, 15, 20]
+    V_sample = [0]
     combinations = list(itertools.product(M_sample, Z_sample, V_sample))
     
     M = []
@@ -193,6 +194,7 @@ if __name__ == "__main__":
         i += 1
 
     length = len(names)
+    print(f"Total models: {length}\n")
     if parallel:
         args = zip(names, M, Z, V, repeat(True), repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track), repeat(True))
         if use_ray:
@@ -209,7 +211,7 @@ if __name__ == "__main__":
             print("CPUs: ", ray.cluster_resources()["CPU"])
             pool.ray_pool(evo_star, args, length, cpu_per_process=cpu_per_process, initializer=helper.unmute)
         else:
-            pool.mp_pool(evo_star, args, length, cpu_per_process=cpu_per_process, initializer=helper.unmute)
+            pool.mp_pool(evo_star, args, length, cpu_per_process=cpu_per_process, initializer=helper.mute)
     else:
         os.environ["OMP_NUM_THREADS"] = '12'
         for i in range(len(names)):
