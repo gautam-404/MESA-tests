@@ -289,8 +289,7 @@ def get_data(logs_dir):
     freqs = []
     profs = []
     n_profs = []
-    # prof_index = pd.read_table(f"{logs_dir}/profiles.index", skiprows=1, sep='\s+')
-    prof_index = np.loadtxt(f"{logs_dir}/profiles.index", skiprows=1, dtype=int)
+    prof_index = pd.read_csv(f"{logs_dir}/profiles.index", skiprows=1, names=['model_number', 'priority', 'profile_number'], delim_whitespace=True)
 
     for f in sorted(glob.glob(f"{logs_dir}/profile*.data.GYRE"), 
                     key=lambda x: int(os.path.basename(x).split('.')[0].split('profile')[1])):

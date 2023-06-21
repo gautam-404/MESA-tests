@@ -61,14 +61,16 @@ def evo_star(args):
             phases_params = helper.phases_params(initial_mass, Zinit)     
             phases_names = list(phases_params.keys())
             phase_max_age = [1E6, 1E7, 4.0E7, "TAMS", "ERGB"]         ## 1E7 is the age when we switch to a coarser timestep
+            max_timestep = [1E4, 1E5, 1E5, 1E6, 1E6]
             for phase_name in phases_names:
                 try:
                     ## Run from inlist template by setting parameters for each phase
                     star.load_InlistProject(inlist_template)
                     print(phase_name)
                     star.set(phases_params[phase_name], force=True)
-                    star.set({"profile_interval":20, "max_num_profile_models": 2000})
+                    star.set({'history_interval':1, "profile_interval":5, "max_num_profile_models":2000})
                     max_age = phase_max_age.pop(0)
+                    star.set({"max_years_for_timestep": max_timestep.pop(0)}, force=True)
                     if isinstance(max_age, float):
                         star.set('max_age', max_age, force=True)
                     elif max_age == "TAMS":
@@ -129,11 +131,13 @@ def evo_star(args):
             profiles = [profile.split('/')[-1] for profile in profiles]
             os.environ["OMP_NUM_THREADS"] = "1"
             proj.runGyre(gyre_in="templates/gyre_rot_template_dipole.in", files=profiles, data_format="GYRE", 
-                        logging=False, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
+                        logging=True, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
             # else:
             #     print("Gyre already ran for track ", name)
-        except:
+        except Exception as e:
             print("Gyre failed for track ", name)
+            print(e)
+
 
 def teff_helper(star):
     delta_lgTeff_limit = star.get("delta_lgTeff_limit")
@@ -148,7 +152,7 @@ def get_gyre_params(name, zinit):
     pindexfile = f"{name}/LOGS/profiles.index"
     h = pd.read_csv(histfile, delim_whitespace=True, skiprows=5)
     p = pd.read_csv(pindexfile, skiprows=1, names=['model_number', 'priority', 'profile_number'], delim_whitespace=True)
-    h = pd.merge(h, p, on='model_number', how='outer')
+    h = pd.merge(h, p, on='model_number', how='right')
     h["Zfrac"] = 1 - h["average_h1"] - h["average_he4"]
     h["Myr"] = h["star_age"]*1.0E-6
     h["density"] = h["star_mass"]/np.power(10,h["log_R"])**3
@@ -159,6 +163,7 @@ def get_gyre_params(name, zinit):
     max_freqs = []
     for i,row in gyre_intake.iterrows():
         p = int(row["profile_number"])
+        # if p is not np.nan:
 
         ## don't run gyre on very cool models (below about 6000 K)
         # if row["log_Teff"] < 3.778:
@@ -192,8 +197,8 @@ if __name__ == "__main__":
     # var_range = [True, False]
 
     var_name = "mesh_delta_coeff"
-    # var_range = np.arange(0.1, 1.7, 0.2)
-    var_range = [1.25]
+    var_range = np.arange(0.1, 1.7, 0.2)
+    var_range = np.append(var_range, [1, 1.25])
     var_sample = [{var_name:c} for c in var_range]
 
     M_sample = [1.7]
@@ -221,7 +226,7 @@ if __name__ == "__main__":
     cpu_per_process = n_cores//n_procs
     os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
     parallel = True
-    produce_track = True
+    produce_track = False
     if parallel:
         print(f"Total {length} tracks.")
         print(f"Running {n_procs} processes in parallel.")
@@ -233,7 +238,7 @@ if __name__ == "__main__":
                 for _ in enumerate(pool.imap_unordered(evo_star, args)):
                     progressbar.advance(task)
     else:
-        os.environ["OMP_NUM_THREADS"] = '4'
+        os.environ["OMP_NUM_THREADS"] = '12'
         for i in range(len(vars)):
             evo_star((names[i], M[i], Z[i], V[i], vars[i], True, False, cpu_per_process, produce_track))
             os.chdir("/Users/anujgautam/Documents/MESA-workspace/MESA-tests/")
