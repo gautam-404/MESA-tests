@@ -22,3 +22,4 @@ tmp_*.csv
 **/.DS_Store
 .vscode/*
 __pycache__/
+src/__pycache__/*

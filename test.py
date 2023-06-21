@@ -79,7 +79,7 @@ def evo_star(args):
                     star.set(phases_params[phase_name], force=True)
 
                     ## History and profile interval
-                    star.set({'history_interval':1, "profile_interval":profile_interval.pop(), "max_num_profile_models":2000})
+                    star.set({'history_interval':1, "profile_interval":profile_interval.pop(), "max_num_profile_models":3000})
                     
                     ##Timestep 
                     star.set({"max_years_for_timestep": max_timestep.pop(0)}, force=True)
