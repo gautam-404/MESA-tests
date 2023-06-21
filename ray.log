@@ -1,0 +1,59 @@
+Usage stats collection is disabled.
+
+Local node IP: 10.148.0.12
+
+--------------------
+Ray runtime started.
+--------------------
+
+Next steps
+  To add another node to this Ray cluster, run
+    ray start --address='10.148.0.12:6379'
+  
+  To connect to this Ray cluster:
+    import ray
+    ray.init()
+  
+  To submit a Ray job using the Ray Jobs CLI:
+    RAY_ADDRESS='http://10.148.0.12:7711' ray job submit --working-dir . -- python my_script.py
+  
+  See https://docs.ray.io/en/latest/cluster/running-applications/job-submission/index.html 
+  for more information on submitting Ray jobs to the Ray cluster.
+  
+  To terminate the Ray runtime, run
+    ray stop
+  
+  To view the status of the cluster, use
+    ray status
+  
+  To monitor and debug Ray, view the dashboard at 
+    10.148.0.12:7711
+  
+  If connection to the dashboard fails, check your firewall settings and network configuration.
+
+Starting ray cluster on worker node 1: n015.head.hpc.usq.edu.au
+Done.
+
+Starting ray cluster on worker node 2: n017.head.hpc.usq.edu.au
+Done.
+
+Starting ray cluster on worker node 3: n018.head.hpc.usq.edu.au
+Done.
+
+Ray cluster setup complete.
+Forward the ray dashboard port to localhost using the following command:
+ssh -N -L 7711:0.0.0.0:7711 u1159830@n011.head.hpc.usq.edu.au -J u1159830@_gateway_
+Then open the following link in your browser:
+http://localhost:8080
+
+[2023-06-21 22:05:09,670 W 27128 27128] global_state_accessor.cc:389: Some processes that the driver needs to connect to have not registered with GCS, so retrying. Have you run 'ray start' on this node?
+2023-06-21 22:05:09,624	INFO scripts.py:892 -- [37mLocal node IP[39m: [1m172.23.0.16[22m
+2023-06-21 22:05:10,671	SUCC scripts.py:904 -- [32m--------------------[39m
+2023-06-21 22:05:10,671	SUCC scripts.py:905 -- [32mRay runtime started.[39m
+2023-06-21 22:05:10,672	SUCC scripts.py:906 -- [32m--------------------[39m
+2023-06-21 22:05:10,672	INFO scripts.py:908 -- To terminate the Ray runtime, run
+2023-06-21 22:05:10,672	INFO scripts.py:909 -- [1m  ray stop[22m
+2023-06-21 22:05:10,672	INFO scripts.py:917 -- [36m[1m--block[22m[39m
+2023-06-21 22:05:10,672	INFO scripts.py:918 -- This command will now block forever until terminated by a signal.
+2023-06-21 22:05:10,672	INFO scripts.py:921 -- Running subprocesses are monitored and a message will be printed if any of them terminate unexpectedly. Subprocesses exit with SIGTERM will be treated as graceful, thus NOT reported.
+ed.

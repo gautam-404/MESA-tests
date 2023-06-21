@@ -20,7 +20,10 @@ def ray_pool(func, args, length, cpu_per_process=16, config={"cores" : None}, in
                         "scheduling_strategy" : "DEFAULT", 
                         "max_restarts" : -1, "max_task_retries" : -1}
     n_processes = (processors // cpu_per_process)
+
     print(f"[b][blue]Running {min([n_processes, length])} parallel processes on {processors} cores.[/blue]")
+    print(f"[b][blue]Each process uses {cpu_per_process} cores.[/blue]")
+
     with progress.Progress(*helper.progress_columns()) as progressbar:
         task = progressbar.add_task("[b i green]Running...", total=length)
         with RayPool(ray_address="auto", processes=n_processes, initializer=initializer, ray_remote_args=ray_remote_args) as pool:
@@ -34,7 +37,10 @@ def mp_pool(func, args, length, cpu_per_process=16, config={"cores" : None}, ini
         processors = int(config["cores"])
     os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
     n_processes = (processors // cpu_per_process)
+
     print(f"[b][blue]Running {min([n_processes, length])} parallel processes on {processors} cores.[/blue]")
+    print(f"[b][blue]Each process uses {cpu_per_process} cores.[/blue]")
+    
     with progress.Progress(*helper.progress_columns()) as progressbar:
         task = progressbar.add_task("[b i green]Running...", total=length)
         with MPool(processes=n_processes, initializer=initializer) as pool:

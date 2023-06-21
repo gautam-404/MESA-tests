@@ -10,6 +10,7 @@ import time
 import itertools
 
 from src import helper, gyre, pool
+from rich import print, console
 
 def evo_star(args):
     '''
@@ -25,106 +26,113 @@ def evo_star(args):
             args[6] (bool): whether to log the evolution in a run.log file
             args[7] (bool): whether this function is being run in parallel with ray
     '''
-    name, mass, metallicity, v_surf_init, gyre_flag, save_track, logging, parallel, cpu_this_process, slice_start, uniform_rotation = args
+    name, mass, metallicity, v_surf_init, gyre_flag, logging, parallel, cpu_this_process, produce_track, uniform_rotation = args
     trace = None
 
     print(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s")
+
     ## Create working directory
-    proj = ProjectOps(name)     
-    proj.create(overwrite=True) 
-    with open(f"{name}/run.log", "a+") as f:
-        f.write(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s\n")
-        f.write(f"CPU: {cpu_this_process}\n\n")
-    star = MesaAccess(name)
-    star.load_HistoryColumns("./src/templates/history_columns.list")
-    star.load_ProfileColumns("./src/templates/profile_columns.list")
+    proj = ProjectOps(name)   
 
-    initial_mass = mass
-    Zinit = metallicity
-    rotation_init_params = {'change_rotation_flag': True,   ## False for rotation off until near zams
-                            'new_rotation_flag': True,
-                            'change_initial_rotation_flag': True,
-                            'set_initial_surface_rotation_v': True,
-                            'set_surface_rotation_v': True,
-                            'new_surface_rotation_v': v_surf_init,
-                            'relax_surface_rotation_v' : True,
-                            'num_steps_to_relax_rotation' : 100,  ## Default value is 100
-                            'relax_omega_max_yrs_dt' : 1.0E-5}   ## Default value is 1.0E9
-    
-    convergence_helper = {"convergence_ignore_equL_residuals" : True}  
+    if produce_track:  
+        start_time = time.time()
+        proj.create(overwrite=True) 
+        with open(f"{name}/run.log", "a+") as f:
+            f.write(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s\n")
+            f.write(f"CPU: {cpu_this_process}\n\n")
+        star = MesaAccess(name)
+        star.load_HistoryColumns("./src/templates/history_columns.list")
+        star.load_ProfileColumns("./src/templates/profile_columns.list")
 
-    inlist_template = "./src/templates/inlist_template"
-    failed = True   ## Flag to check if the run failed, if it did, we retry with a different initial mass (M+dM)
-    retry = 0
-    total_retries = 4
-    retry_type, terminate_type = None, None
-    while retry<=total_retries and failed:
-        proj.clean()
-        proj.make(silent=True)
-        phases_params = helper.phases_params(initial_mass, Zinit)     
-        phases_names = phases_params.keys()
-        stopping_conditions = [{"stop_at_phase_PreMS":True}, {"stop_at_phase_ZAMS":True}, {"stop_at_phase_TAMS":True}, "ERGB"]
-        max_timestep = [1E4, 1E5, 2E6, 2E6]
-        profile_interval = [1, 2, 2, 2]
-        for phase_name in phases_names:
-            try:
-                ## Run from inlist template by setting parameters for each phase
-                star.load_InlistProject(inlist_template)
-                print(phase_name)
-                star.set(phases_params[phase_name], force=True)
+        initial_mass = mass
+        Zinit = metallicity
+        rotation_init_params = {'change_rotation_flag': True,   ## False for rotation off until near zams
+                                'new_rotation_flag': True,
+                                'change_initial_rotation_flag': True,
+                                'set_initial_surface_rotation_v': True,
+                                'set_surface_rotation_v': True,
+                                'new_surface_rotation_v': v_surf_init,
+                                'relax_surface_rotation_v' : True,
+                                'num_steps_to_relax_rotation' : 100,  ## Default value is 100
+                                'relax_omega_max_yrs_dt' : 1.0E-5}   ## Default value is 1.0E9
+        
+        convergence_helper = {"convergence_ignore_equL_residuals" : True}  
 
-                ## History and profile interval
-                star.set({'history_interval':1, "profile_interval":profile_interval.pop(), "max_num_profile_models":2000})
-                
-                ##Timestep 
-                star.set({"max_years_for_timestep": max_timestep.pop(0)}, force=True)
-                
-                ## Stopping conditions
-                stopping_condition = stopping_conditions.pop(0)
-                if  stopping_condition == "ERGB":
-                    ergb_params = {'Teff_lower_limit' : 6000}
-                    star.set(ergb_params, force=True)
-                else:
-                    star.set(stopping_condition, force=True)
+        inlist_template = "./src/templates/inlist_template"
+        failed = True   ## Flag to check if the run failed, if it did, we retry with a different initial mass (M+dM)
+        retry = 0
+        total_retries = 4
+        retry_type, terminate_type = None, None
+        while retry<=total_retries and failed:
+            proj.clean()
+            proj.make(silent=True)
+            phases_params = helper.phases_params(initial_mass, Zinit)     
+            phases_names = phases_params.keys()
+            stopping_conditions = [{"stop_at_phase_PreMS":True}, {"stop_at_phase_ZAMS":True}, {"stop_at_phase_TAMS":True}, "ERGB"]
+            max_timestep = [1E4, 1E5, 2E6, 2E6]
+            profile_interval = [1, 2, 2, 2]
+            for phase_name in phases_names:
+                try:
+                    ## Run from inlist template by setting parameters for each phase
+                    star.load_InlistProject(inlist_template)
+                    print(phase_name)
+                    star.set(phases_params[phase_name], force=True)
 
-                ### Checks
-                if uniform_rotation:
-                    star.set({"set_uniform_am_nu_non_rot": True}, force=True)
-                if retry > 0:
-                    if "delta_lgTeff" in retry_type:
-                        teff_helper(star, retry)
+                    ## History and profile interval
+                    star.set({'history_interval':1, "profile_interval":profile_interval.pop(), "max_num_profile_models":2000})
+                    
+                    ##Timestep 
+                    star.set({"max_years_for_timestep": max_timestep.pop(0)}, force=True)
+                    
+                    ## Stopping conditions
+                    stopping_condition = stopping_conditions.pop(0)
+                    if  stopping_condition == "ERGB":
+                        ergb_params = {'Teff_lower_limit' : 6000}
+                        star.set(ergb_params, force=True)
                     else:
-                        star.set(convergence_helper, force=True)
+                        star.set(stopping_condition, force=True)
 
-                ## RUN
-                if phase_name == "Pre-MS Evolution":
-                    ## Initiate rotation
-                    if v_surf_init>0:
-                        star.set(rotation_init_params, force=True)
-                    print(f"End age: {proj.run(logging=logging, parallel=parallel, trace=trace):.2e} yrs\n")
-                else:
-                    print(f"End age: {proj.resume(logging=logging, parallel=parallel, trace=trace):.2e} yrs\n")
-            except Exception as e:
-                failed = True
-                print(e)
-                retry_type, terminate_type = helper.read_error(name)
-                break
-            except KeyboardInterrupt:
-                raise KeyboardInterrupt
-            else:
-                failed = False
-        if failed:
-            retry += 1
-            with open(f"{name}/run.log", "a+") as f:
-                if retry == total_retries:
-                    f.write(f"Max retries reached. Model skipped!\n")
+                    ### Checks
+                    if uniform_rotation:
+                        star.set({"set_uniform_am_nu_non_rot": True}, force=True)
+                    if retry > 0:
+                        if "delta_lgTeff" in retry_type:
+                            teff_helper(star, retry)
+                        else:
+                            star.set(convergence_helper, force=True)
+
+                    ## RUN
+                    if phase_name == "Pre-MS Evolution":
+                        ## Initiate rotation
+                        if v_surf_init>0:
+                            star.set(rotation_init_params, force=True)
+                        print(f"End age: {proj.run(logging=logging, parallel=parallel, trace=trace):.2e} yrs\n")
+                    else:
+                        print(f"End age: {proj.resume(logging=logging, parallel=parallel, trace=trace):.2e} yrs\n")
+                except Exception as e:
+                    failed = True
+                    print(e)
+                    retry_type, terminate_type = helper.read_error(name)
                     break
-                f.write(f"\nMass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s\n")
-                f.write(f"Failed at phase: {phase_name}\n")
-                if "delta_lgTeff" in retry_type:
-                    f.write(f"Retrying with \"T_eff helper\"\n")
+                except KeyboardInterrupt:
+                    raise KeyboardInterrupt
                 else:
-                    f.write(f"Retrying with \"convergence helper\"\n")
+                    failed = False
+            if failed:
+                retry += 1
+                with open(f"{name}/run.log", "a+") as f:
+                    if retry == total_retries:
+                        f.write(f"Max retries reached. Model skipped!\n")
+                        break
+                    f.write(f"\nMass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s\n")
+                    f.write(f"Failed at phase: {phase_name}\n")
+                    if "delta_lgTeff" in retry_type:
+                        f.write(f"Retrying with \"T_eff helper\"\n")
+                    else:
+                        f.write(f"Retrying with \"convergence helper\"\n")
+        end_time = time.time()
+        with open(f"{name}/run.log", "a+") as f:
+            f.write(f"Total time: {end_time-start_time} s\n\n")
 
     if not failed:
         try:
@@ -153,16 +161,23 @@ def teff_helper(star, retry):
     delta_lgTeff_hard_limit += retry*delta_lgTeff_hard_limit
     star.set({"delta_lgTeff_limit": delta_lgTeff_limit, "delta_lgTeff_hard_limit": delta_lgTeff_hard_limit}, force=True)
 
+
+
+
+
+
+
 if __name__ == "__main__":
     nf = 2
     folder = f"test{nf}"
     parallel = True
     use_ray = True
-    produce_track = False
+    produce_track = True
+    cpu_per_process = 2
 
     M_sample = [1.3, 1.5, 1.7, 1.9, 2.1]
     Z_sample = [0.001, 0.004, 0.007, 0.01, 0.013, 0.015, 0.018, 0.021]
-    V_sample = [0]
+    V_sample = [0, 5, 10, 15, 20]
     combinations = list(itertools.product(M_sample, Z_sample, V_sample))
     
     M = []
@@ -178,16 +193,23 @@ if __name__ == "__main__":
         i += 1
 
     length = len(names)
-    n_cores = psutil.cpu_count(logical=False)
-    n_procs = length
-    cpu_per_process = n_cores//n_procs
-    os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
     if parallel:
-        args = zip(names, M, Z, V, repeat(True), repeat(True), repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track), repeat(True))
-        if not use_ray:
-            pool.mp_pool(evo_star, args, length, cpu_per_process=cpu_per_process, initializer=helper.unmute)
-        else:
+        args = zip(names, M, Z, V, repeat(True), repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track), repeat(True))
+        if use_ray:
+            import ray   
+            try:
+                ray.init(address="auto")
+            except:
+                ## Start the ray cluster
+                with console.Console().status("[b i][blue]Starting ray cluster...[/blue]") as status:
+                    pool.start_ray()
+                print("[b i][green]Ray cluster started.[/green]\n")
+                ray.init(address="auto")
+            print("\n[b i][blue]Ray cluster resources:[/blue]")
+            print("CPUs: ", ray.cluster_resources()["CPU"])
             pool.ray_pool(evo_star, args, length, cpu_per_process=cpu_per_process, initializer=helper.unmute)
+        else:
+            pool.mp_pool(evo_star, args, length, cpu_per_process=cpu_per_process, initializer=helper.unmute)
     else:
         os.environ["OMP_NUM_THREADS"] = '12'
         for i in range(len(names)):
