@@ -7,3 +7,18 @@ test*/
 data/*
 
 *.csv
+
+test/test*/*
+software/*
+joblogs/*
+ray.log
+install.log
+
+incomplete*.dat
+megasaurus*.csv
+minisaurus*.csv
+tmp_*.csv
+
+**/.DS_Store
+.vscode/*
+__pycache__/
