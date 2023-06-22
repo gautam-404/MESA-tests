@@ -108,6 +108,7 @@ def evo_star(args):
                             star.set(rotation_init_params, force=True)
                         print(f"End age: {proj.run(logging=logging, parallel=parallel, trace=trace):.2e} yrs\n")
                     else:
+                        
                         print(f"End age: {proj.resume(logging=logging, parallel=parallel, trace=trace):.2e} yrs\n")
                 except Exception as e:
                     failed = True

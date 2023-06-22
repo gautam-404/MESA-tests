@@ -227,58 +227,7 @@ if __name__ == "__main__":
     else:
         os.environ["OMP_NUM_THREADS"] = '12'
         for i in range(len(names)):
-            evo_star((names[i], M[i], Z[i], V[i], True, False, cpu_per_process, produce_track))
+            evo_star((names[i], M[i], Z[i], V[i], params[i], True, False, cpu_per_process, produce_track))
             os.chdir("/Users/anujgautam/Documents/MESA-workspace/MESA-tests/")
 
-    
-
-if __name__ == "__main__":
-    # var_name = "convergence_ignore_equL_residuals"
-    # var_range = [True, False]
-
-    var_name = "mesh_delta_coeff"
-    var_range = np.arange(0.1, 1.7, 0.2)
-    var_range = np.append(var_range, [1, 1.25])
-    var_sample = [{var_name:c} for c in var_range]
-
-    M_sample = [1.7]
-    Z_sample = [0.015]
-    V_sample = [0]
-    combinations = list(itertools.product(M_sample, Z_sample, V_sample, var_sample))
-    
-    M = []
-    Z = []
-    V = []
-    vars = []
-    names = []
-    i = 1
-    for m, z, v, var in combinations:
-        M.append(m)
-        Z.append(z)
-        V.append(v)
-        vars.append(var)
-        names.append(f"test1/m{m}_z{z}_v{v}_var{i}")
-        i += 1
-
-    length = len(vars)
-    n_cores = psutil.cpu_count(logical=False)
-    n_procs = length
-    cpu_per_process = n_cores//n_procs
-    os.environ["OMP_NUM_THREADS"] = str(cpu_per_process)
-    parallel = True
-    produce_track = False
-    if parallel:
-        print(f"Total {length} tracks.")
-        print(f"Running {n_procs} processes in parallel.")
-        print(f"Using {cpu_per_process} cores per process.")
-        with progress.Progress(*helper.progress_columns()) as progressbar:
-            task = progressbar.add_task("[b i green]Running...", total=length)
-            with Pool(n_procs, initializer=helper.unmute) as pool:
-                args = zip(names, M, Z, V, vars, repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track))
-                for _ in enumerate(pool.imap_unordered(evo_star, args)):
-                    progressbar.advance(task)
-    else:
-        os.environ["OMP_NUM_THREADS"] = '12'
-        for i in range(len(vars)):
-            evo_star((names[i], M[i], Z[i], V[i], vars[i], True, False, cpu_per_process, produce_track))
-            os.chdir("/Users/anujgautam/Documents/MESA-workspace/MESA-tests/")
+ 
