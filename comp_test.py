@@ -176,14 +176,11 @@ if __name__ == "__main__":
     parallel = True
     use_ray = False
     produce_track = True
-    cpu_per_process = 64
-
-    # param_name = "convergence_ignore_equL_residuals"
-    # param_range = [True, False]
+    # cpu_per_process = 64
 
     param_name = "mesh_delta_coeff"
-    param_range = np.arange(0.1, 1.7, 0.2)
-    param_range = np.append(param_range, [1, 1.25])
+    param_range = np.arange(0.1, 1.4, 0.3)
+    param_range = np.append(param_range, [1.25])
     param_sample = [{param_name:c} for c in param_range]
 
     M_sample = [1.7]
@@ -206,9 +203,10 @@ if __name__ == "__main__":
         i += 1
 
     length = len(names)
+    cpu_per_process = int(psutil.cpu_count(logical=False)//length)
     print(f"Total models: {length}\n")
     if parallel:
-        args = zip(names, M, Z, V, param, repeat(True), repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track), repeat(True))
+        args = zip(names, M, Z, V, params, repeat(True), repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track), repeat(True))
         if use_ray:
             import ray   
             try:
@@ -223,7 +221,7 @@ if __name__ == "__main__":
             print("CPUs: ", ray.cluster_resources()["CPU"])
             pool.ray_pool(evo_star, args, length, cpu_per_process=cpu_per_process, initializer=helper.unmute)
         else:
-            pool.mp_pool(evo_star, args, length, cpu_per_process=cpu_per_process, initializer=helper.mute)
+            pool.mp_pool(evo_star, args, length, cpu_per_process=cpu_per_process, initializer=helper.unmute)
     else:
         os.environ["OMP_NUM_THREADS"] = '12'
         for i in range(len(names)):

@@ -179,8 +179,8 @@ if __name__ == "__main__":
     # M_sample = [1.3, 1.5, 1.7, 1.9, 2.1]
     # Z_sample = [0.001, 0.004, 0.007, 0.01, 0.013, 0.015, 0.018, 0.021]
     # V_sample = [0, 5, 10, 15, 20]
-    M_sample = [1.7]
-    Z_sample = [0.015]
+    M_sample = [1.4, 1.7, 2]
+    Z_sample = [0.001, 0.007, 0.015, 0.021, 0.026]
     V_sample = [0]
     combinations = list(itertools.product(M_sample, Z_sample, V_sample))
     
