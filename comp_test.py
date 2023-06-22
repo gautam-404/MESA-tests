@@ -33,6 +33,8 @@ def evo_star(args):
 
     ## Create working directory
     proj = ProjectOps(name)   
+    initial_mass = mass
+    Zinit = metallicity
 
     if produce_track:  
         start_time = time.time()
@@ -44,8 +46,6 @@ def evo_star(args):
         star.load_HistoryColumns("./src/templates/history_columns.list")
         star.load_ProfileColumns("./src/templates/profile_columns.list")
 
-        initial_mass = mass
-        Zinit = metallicity
         rotation_init_params = {'change_rotation_flag': True,   ## False for rotation off until near zams
                                 'new_rotation_flag': True,
                                 'change_initial_rotation_flag': True,
@@ -136,10 +136,12 @@ def evo_star(args):
         end_time = time.time()
         with open(f"{name}/run.log", "a+") as f:
             f.write(f"Total time: {end_time-start_time} s\n\n")
+    else:
+        failed = False
 
-    if not failed:
-        try:
-            if gyre_flag:   ## Optional, GYRE can berun separately using the run_gyre function  
+    if gyre_flag:   ## Optional, GYRE can berun separately using the run_gyre function  
+        if not failed:
+            try:
                 print("[bold green]Running GYRE...[/bold green]")
                 os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
                 os.environ['OMP_NUM_THREADS'] = '2'
@@ -152,9 +154,9 @@ def evo_star(args):
                     with open(f"{name}/run.log", "a+") as f:
                         f.write(f"GYRE skipped: no profiles found, possibly because all models had T_eff < 6000 K\n")
                     gyre_flag = False
-        except Exception as e:
-            print("Gyre failed for track ", name)
-            print(e)
+            except Exception as e:
+                print("Gyre failed for track ", name)
+                print(e)
 
 
 def teff_helper(star, retry):
@@ -171,7 +173,7 @@ def teff_helper(star, retry):
 
 
 if __name__ == "__main__":
-    nf = 1
+    nf = 2
     folder = f"test{nf}"
     parallel = True
     use_ray = False
@@ -179,8 +181,9 @@ if __name__ == "__main__":
     # cpu_per_process = 64
 
     param_name = "mesh_delta_coeff"
-    param_range = np.arange(0.1, 1.4, 0.3)
-    param_range = np.append(param_range, [1.25])
+    # param_range = np.arange(0.1, 1.4, 0.3)
+    # param_range = np.append(param_range, [1.25])
+    param_range = [0.1]
     param_sample = [{param_name:c} for c in param_range]
 
     M_sample = [1.7]
@@ -199,7 +202,7 @@ if __name__ == "__main__":
         Z.append(z)
         V.append(v)
         params.append(param)
-        names.append(f"test1/m{m}_z{z}_v{v}_param{i}")
+        names.append(f"{folder}/m{m}_z{z}_v{v}_param{i}")
         i += 1
 
     length = len(names)
