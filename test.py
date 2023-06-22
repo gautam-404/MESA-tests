@@ -68,9 +68,9 @@ def evo_star(args):
             proj.make(silent=True)
             phases_params = helper.phases_params(initial_mass, Zinit)     
             phases_names = phases_params.keys()
-            stopping_conditions = [{"stop_at_phase_PreMS":True}, {"stop_at_phase_ZAMS":True}, {"stop_at_phase_TAMS":True}, "ERGB"]
-            max_timestep = [1E4, 1E5, 1E6, 1E6]
-            profile_interval = [1, 2, 5, 5]
+            stopping_conditions = [{"stop_at_phase_ZAMS":True}, {"max_age":4e7}, {"stop_at_phase_TAMS":True}, "ERGB"]
+            max_timestep = [1E4, 1E5, 2E6, 1E7]
+            profile_interval = [1, 1, 5, 5]
             for phase_name in phases_names:
                 try:
                     ## Run from inlist template by setting parameters for each phase
@@ -102,7 +102,7 @@ def evo_star(args):
                             star.set(convergence_helper, force=True)
 
                     ## RUN
-                    if phase_name == "Pre-MS Evolution":
+                    if phase_name == "Evolution to ZAMS":
                         ## Initiate rotation
                         if v_surf_init>0:
                             star.set(rotation_init_params, force=True)
@@ -173,11 +173,13 @@ if __name__ == "__main__":
     parallel = True
     use_ray = False
     produce_track = True
-    cpu_per_process = 3
+    cpu_per_process = 64
 
-    M_sample = [1.3, 1.5, 1.7, 1.9, 2.1]
-    Z_sample = [0.001, 0.004, 0.007, 0.01, 0.013, 0.015, 0.018, 0.021]
+    # M_sample = [1.3, 1.5, 1.7, 1.9, 2.1]
+    # Z_sample = [0.001, 0.004, 0.007, 0.01, 0.013, 0.015, 0.018, 0.021]
     # V_sample = [0, 5, 10, 15, 20]
+    M_sample = [1.7]
+    Z_sample = [0.015]
     V_sample = [0]
     combinations = list(itertools.product(M_sample, Z_sample, V_sample))
     

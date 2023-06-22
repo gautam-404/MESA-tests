@@ -53,7 +53,7 @@ def phases_params(initial_mass, Zinit):
     '''
     Yinit, initial_h1, initial_h2, initial_he3, initial_he4 = initial_abundances(Zinit)
 
-    params = { 'Pre-MS Evolution':
+    params = { 'Evolution to ZAMS':
                     {'initial_mass': initial_mass, 'initial_z': Zinit, 'Zbase': Zinit, 'initial_y': Yinit,
                     'initial_h1': initial_h1,'initial_h2': initial_h2, 
                     'initial_he3': initial_he3, 'initial_he4': initial_he4,
@@ -78,7 +78,7 @@ def phases_params(initial_mass, Zinit):
                     'trace_history_value_name(6)': 'log_R',
                     'trace_history_value_name(7)': 'star_mass'},
 
-                'MS Evolution' :
+                'Early MS Evolution' :
                     {'Zbase': Zinit, 'change_initial_net' : False, 'show_net_species_info' : False, 'show_net_reactions_info' : False,
                     'max_years_for_timestep' : 0.75e6, 
                     'delta_lgTeff_limit' : 0.00015, 'delta_lgTeff_hard_limit' : 0.0015,

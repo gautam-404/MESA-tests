@@ -5,34 +5,44 @@ import pandas as pd
 from rich import print, progress
 import os, psutil
 from itertools import repeat, product
-from multiprocessing import Pool
 import glob
 import time
 import itertools
 
-
-import helper
-
-
+from src import helper, gyre, pool
+from rich import print, console
 
 def evo_star(args):
-    name, mass, metallicity, v_surf_init, var, logging, parallel, cpu_this_process, produce_track = args
+    '''
+    Run MESA evolution for a single star.
+    Args:
+        args (tuple): tuple of arguments
+            args[0] (float): initial mass
+            args[1] (float): metallicity
+            args[2] (float): initial surface rotation velocity
+            args[3] (str): track number
+            args[4] (bool): whether to run GYRE
+            args[5] (bool): whether to save the track
+            args[6] (bool): whether to log the evolution in a run.log file
+            args[7] (bool): whether this function is being run in parallel with ray
+    '''
+    name, mass, metallicity, v_surf_init, param, gyre_flag, logging, parallel, cpu_this_process, produce_track, uniform_rotation = args
     trace = None
-    start_time = time.time()
-    ## Create/Resume working directory
-    proj = ProjectOps(name)    
-    initial_mass = mass
-    Zinit = metallicity 
-    if produce_track:
-        print(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s")
+
+    print(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s")
+
+    ## Create working directory
+    proj = ProjectOps(name)   
+
+    if produce_track:  
+        start_time = time.time()
         proj.create(overwrite=True) 
         with open(f"{name}/run.log", "a+") as f:
             f.write(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s\n")
-            f.write(f"CPU: {cpu_this_process}\n")
-            f.write(f"OMP_NUM_THREADS: {os.environ['OMP_NUM_THREADS']}\n\n")
+            f.write(f"CPU: {cpu_this_process}\n\n")
         star = MesaAccess(name)
-        star.load_HistoryColumns("templates/history_columns.list")
-        star.load_ProfileColumns("templates/profile_columns.list")
+        star.load_HistoryColumns("./src/templates/history_columns.list")
+        star.load_ProfileColumns("./src/templates/profile_columns.list")
 
         initial_mass = mass
         Zinit = metallicity
@@ -44,59 +54,63 @@ def evo_star(args):
                                 'new_surface_rotation_v': v_surf_init,
                                 'relax_surface_rotation_v' : True,
                                 'num_steps_to_relax_rotation' : 100,  ## Default value is 100
-                                'relax_omega_max_yrs_dt' : 1.0E-5,   ## Default value is 1.0E9
-                                'set_uniform_am_nu_non_rot': True}
+                                'relax_omega_max_yrs_dt' : 1.0E-5}   ## Default value is 1.0E9
         
         convergence_helper = {"convergence_ignore_equL_residuals" : True}  
 
-        inlist_template = "templates/inlist_template"
+        inlist_template = "./src/templates/inlist_template"
         failed = True   ## Flag to check if the run failed, if it did, we retry with a different initial mass (M+dM)
         retry = 0
         total_retries = 2
         retry_type, terminate_type = None, None
-        uniform_rotation = True
         while retry<=total_retries and failed:
             proj.clean()
             proj.make(silent=True)
             phases_params = helper.phases_params(initial_mass, Zinit)     
-            phases_names = list(phases_params.keys())
-            phase_max_age = [1E7, 4.0E7, "TAMS", "ERGB"]         ## 1E7 is the age when we switch to a coarser timestep
-            max_timestep = [1E4, 1E5, 2E6, 2E6]
+            phases_names = phases_params.keys()
+            stopping_conditions = [{"stop_at_phase_ZAMS":True}, {"max_age":4e7}, {"stop_at_phase_TAMS":True}, "ERGB"]
+            max_timestep = [1E4, 1E5, 2E6, 1E7]
+            profile_interval = [1, 1, 5, 5]
             for phase_name in phases_names:
                 try:
                     ## Run from inlist template by setting parameters for each phase
                     star.load_InlistProject(inlist_template)
                     print(phase_name)
                     star.set(phases_params[phase_name], force=True)
-                    star.set({'history_interval':1, "profile_interval":5, "max_num_profile_models":2000})
-                    max_age = phase_max_age.pop(0)
+
+                    ## TEST PARAMETER
+                    star.set(param, force=True)
+
+                    ## History and profile interval
+                    star.set({'history_interval':1, "profile_interval":profile_interval.pop(), "max_num_profile_models":3000})
+                    
+                    ##Timestep 
                     star.set({"max_years_for_timestep": max_timestep.pop(0)}, force=True)
-                    if isinstance(max_age, float):
-                        star.set('max_age', max_age, force=True)
-                    elif max_age == "TAMS":
-                        tams_params = {'xa_central_lower_limit_species(1)' : 'h1',
-                                       "xa_central_lower_limit(1)" : 0.01}
-                        star.set(tams_params, force=True)
-                    elif max_age == "ERGB":
-                        ergb_params = {'Teff_lower_limit' : 5000}
+                    
+                    ## Stopping conditions
+                    stopping_condition = stopping_conditions.pop(0)
+                    if  stopping_condition == "ERGB":
+                        ergb_params = {'Teff_lower_limit' : 6000}
                         star.set(ergb_params, force=True)
-                    star.set(var, force=True)
+                    else:
+                        star.set(stopping_condition, force=True)
+
+                    ### Checks
                     if uniform_rotation:
                         star.set({"set_uniform_am_nu_non_rot": True}, force=True)
                     if retry > 0:
                         if "delta_lgTeff" in retry_type:
-                            teff_helper(star)
+                            teff_helper(star, retry)
                         else:
                             star.set(convergence_helper, force=True)
-                    if phase_name == "Pre-MS Evolution":
+
+                    ## RUN
+                    if phase_name == "Evolution to ZAMS":
                         ## Initiate rotation
                         if v_surf_init>0:
                             star.set(rotation_init_params, force=True)
                         print(f"End age: {proj.run(logging=logging, parallel=parallel, trace=trace):.2e} yrs\n")
                     else:
-                        # if phase_name == "Late Main Sequence Evolution":
-                        #     print("Phase skipped")
-                        #     continue
                         print(f"End age: {proj.resume(logging=logging, parallel=parallel, trace=trace):.2e} yrs\n")
                 except Exception as e:
                     failed = True
@@ -123,72 +137,98 @@ def evo_star(args):
         with open(f"{name}/run.log", "a+") as f:
             f.write(f"Total time: {end_time-start_time} s\n\n")
 
-    gyre = True
-    if gyre:
+    if not failed:
         try:
-            # if not os.path.exists(f"{name}/gyre.log"):
-            profiles, gyre_input_params = get_gyre_params(name, Zinit)
-            profiles = [profile.split('/')[-1] for profile in profiles]
-            os.environ["OMP_NUM_THREADS"] = "1"
-            proj.runGyre(gyre_in="templates/gyre_rot_template_dipole.in", files=profiles, data_format="GYRE", 
-                        logging=True, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
-            # else:
-            #     print("Gyre already ran for track ", name)
+            if gyre_flag:   ## Optional, GYRE can berun separately using the run_gyre function  
+                print("[bold green]Running GYRE...[/bold green]")
+                os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
+                os.environ['OMP_NUM_THREADS'] = '2'
+                profiles, gyre_input_params = gyre.get_gyre_params(name, Zinit)
+                if len(profiles) > 0:
+                    profiles = [profile.split('/')[-1] for profile in profiles]
+                    proj.runGyre(gyre_in=os.path.expanduser("~/workspace/MESA-grid/src/templates/gyre_rot_template_dipole.in"), files=profiles, data_format="GYRE", 
+                                logging=False, parallel=True, n_cores=cpu_this_process, gyre_input_params=gyre_input_params)
+                else:
+                    with open(f"{name}/run.log", "a+") as f:
+                        f.write(f"GYRE skipped: no profiles found, possibly because all models had T_eff < 6000 K\n")
+                    gyre_flag = False
         except Exception as e:
             print("Gyre failed for track ", name)
             print(e)
 
 
-def teff_helper(star):
+def teff_helper(star, retry):
     delta_lgTeff_limit = star.get("delta_lgTeff_limit")
     delta_lgTeff_hard_limit = star.get("delta_lgTeff_hard_limit")
-    delta_lgTeff_hard_limit += delta_lgTeff_hard_limit
+    # delta_lgTeff_limit += delta_lgTeff_limit/10
+    delta_lgTeff_hard_limit += retry*delta_lgTeff_hard_limit
     star.set({"delta_lgTeff_limit": delta_lgTeff_limit, "delta_lgTeff_hard_limit": delta_lgTeff_hard_limit}, force=True)
 
 
 
-def get_gyre_params(name, zinit):
-    histfile = f"{name}/LOGS/history.data"
-    pindexfile = f"{name}/LOGS/profiles.index"
-    h = pd.read_csv(histfile, delim_whitespace=True, skiprows=5)
-    p = pd.read_csv(pindexfile, skiprows=1, names=['model_number', 'priority', 'profile_number'], delim_whitespace=True)
-    h = pd.merge(h, p, on='model_number', how='right')
-    h["Zfrac"] = 1 - h["average_h1"] - h["average_he4"]
-    h["Myr"] = h["star_age"]*1.0E-6
-    h["density"] = h["star_mass"]/np.power(10,h["log_R"])**3
-    gyre_start_age = 1e6
-    gyre_intake = h.query(f"Myr > {gyre_start_age/1.0E6}")
-    profiles = []
-    min_freqs = []
-    max_freqs = []
-    for i,row in gyre_intake.iterrows():
-        p = int(row["profile_number"])
-        # if p is not np.nan:
 
-        ## don't run gyre on very cool models (below about 6000 K)
-        # if row["log_Teff"] < 3.778:
-        #     continue
-        # else:
-        profiles.append(f"{name}/LOGS/profile{p}.data.GYRE")
-        try:
-            muhz_to_cd = 86400/1.0E6
-            mesa_dnu = row["delta_nu"]
-            dnu = mesa_dnu * muhz_to_cd
-            freq_min = int(1.5 * dnu)
-            freq_max = int(12 * dnu)
-        except:
-            dnu = None
-            freq_min = 15
-            if zinit < 0.003:
-                freq_max = 150
-            else:
-                freq_max = 95
-        min_freqs.append(freq_min)
-        max_freqs.append(freq_max)
-    gyre_input_params = []
-    for i in range(len(profiles)):
-        gyre_input_params.append({"freq_min": min_freqs[i], "freq_max": max_freqs[i]})
-    return profiles, gyre_input_params
+
+
+
+if __name__ == "__main__":
+    nf = 1
+    folder = f"test{nf}"
+    parallel = True
+    use_ray = False
+    produce_track = True
+    cpu_per_process = 64
+
+    # param_name = "convergence_ignore_equL_residuals"
+    # param_range = [True, False]
+
+    param_name = "mesh_delta_coeff"
+    param_range = np.arange(0.1, 1.7, 0.2)
+    param_range = np.append(param_range, [1, 1.25])
+    param_sample = [{param_name:c} for c in param_range]
+
+    M_sample = [1.7]
+    Z_sample = [0.015]
+    V_sample = [0]
+    combinations = list(itertools.product(M_sample, Z_sample, V_sample, param_sample))
+    
+    M = []
+    Z = []
+    V = []
+    params = []
+    names = []
+    i = 1
+    for m, z, v, param in combinations:
+        M.append(m)
+        Z.append(z)
+        V.append(v)
+        params.append(param)
+        names.append(f"test1/m{m}_z{z}_v{v}_param{i}")
+        i += 1
+
+    length = len(names)
+    print(f"Total models: {length}\n")
+    if parallel:
+        args = zip(names, M, Z, V, param, repeat(True), repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track), repeat(True))
+        if use_ray:
+            import ray   
+            try:
+                ray.init(address="auto")
+            except:
+                ## Start the ray cluster
+                with console.Console().status("[b i][blue]Starting ray cluster...[/blue]") as status:
+                    pool.start_ray()
+                print("[b i][green]Ray cluster started.[/green]\n")
+                ray.init(address="auto")
+            print("\n[b i][blue]Ray cluster resources:[/blue]")
+            print("CPUs: ", ray.cluster_resources()["CPU"])
+            pool.ray_pool(evo_star, args, length, cpu_per_process=cpu_per_process, initializer=helper.unmute)
+        else:
+            pool.mp_pool(evo_star, args, length, cpu_per_process=cpu_per_process, initializer=helper.mute)
+    else:
+        os.environ["OMP_NUM_THREADS"] = '12'
+        for i in range(len(names)):
+            evo_star((names[i], M[i], Z[i], V[i], True, False, cpu_per_process, produce_track))
+            os.chdir("/Users/anujgautam/Documents/MESA-workspace/MESA-tests/")
 
     
 
