@@ -172,17 +172,17 @@ def teff_helper(star, retry):
 
 
 if __name__ == "__main__":
-    nf = 1
+    nf = 2
     folder = f"test{nf}"
     parallel = True
     use_ray = False
     produce_track = True
-    cpu_per_process = 64
+    # cpu_per_process = 64
 
     # M_sample = [1.3, 1.5, 1.7, 1.9, 2.1]
     # Z_sample = [0.001, 0.004, 0.007, 0.01, 0.013, 0.015, 0.018, 0.021]
     # V_sample = [0, 5, 10, 15, 20]
-    M_sample = [1.4, 1.7, 2]
+    M_sample = [1.7]
     Z_sample = [0.001, 0.007, 0.015, 0.021, 0.026]
     V_sample = [0]
     combinations = list(itertools.product(M_sample, Z_sample, V_sample))
@@ -200,6 +200,7 @@ if __name__ == "__main__":
         i += 1
 
     length = len(names)
+    cpu_per_process = int(psutil.cpu_count(logical=False)//length)
     print(f"Total models: {length}\n")
     if parallel:
         args = zip(names, M, Z, V, repeat(True), repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track), repeat(True))

@@ -106,7 +106,7 @@ def process_gyre_file(grid_iter):
 
 
 if __name__ == "__main__":
-    log_dirs = sorted(glob.glob("test1/*/LOGS"))
+    log_dirs = sorted(glob.glob("test_1.7_z/*/LOGS"))
     m = [float(name.split("/")[1].split("_")[0].split("m")[1]) for name in log_dirs]
     z = [float(name.split("/")[1].split("_")[1].split("z")[1]) for name in log_dirs]
     v = [float(name.split("/")[1].split("_")[2].split("v")[1]) for name in log_dirs]
@@ -130,11 +130,11 @@ if __name__ == "__main__":
 
     grid["teff"] = np.round(np.power(10,grid["log_Teff"]),2)
     grid.rename(columns={"log_L":"logL","delta_nu":"dnu_muhz"},inplace=True)
-    drop_cols = ['model_number','num_zones','star_age','log_dt','he_core_mass', 
-                'center_h1', 'center_he4', 'log_LH', 'log_LHe', 'log_LZ', 'log_Lnuc', 'pp', 'cno', 
-                'tri_alpha', 'log_Teff', 'average_h1', 'average_he4', 'total_mass_h1', 'total_mass_he4', 
-                'log_cntr_P', 'log_cntr_Rho', 'log_cntr_T', 'num_retries','num_iters','priority']
-    grid.drop(columns=drop_cols,inplace=True)
+    # drop_cols = ['model_number','num_zones','star_age','log_dt','he_core_mass', 
+    #             'center_h1', 'center_he4', 'log_LH', 'log_LHe', 'log_LZ', 'log_Lnuc', 'pp', 'cno', 
+    #             'tri_alpha', 'log_Teff', 'average_h1', 'average_he4', 'total_mass_h1', 'total_mass_he4', 
+    #             'log_cntr_P', 'log_cntr_Rho', 'log_cntr_T', 'num_retries','num_iters','priority']
+    # grid.drop(columns=drop_cols,inplace=True)
 
     grid = grid.query("profile_number==profile_number")
     grid = grid.astype({"profile_number": int, "tr_num": int})
