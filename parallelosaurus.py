@@ -106,7 +106,8 @@ def process_gyre_file(grid_iter):
 
 
 if __name__ == "__main__":
-    log_dirs = sorted(glob.glob("test_1.7_z/*/LOGS"))
+    # log_dirs = sorted(glob.glob("test_mesh_1.7_0.015/*/LOGS"))
+    log_dirs = sorted(glob.glob("test2/*/LOGS"))
     m = [float(name.split("/")[1].split("_")[0].split("m")[1]) for name in log_dirs]
     z = [float(name.split("/")[1].split("_")[1].split("z")[1]) for name in log_dirs]
     v = [float(name.split("/")[1].split("_")[2].split("v")[1]) for name in log_dirs]

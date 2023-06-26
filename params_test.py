@@ -181,9 +181,8 @@ if __name__ == "__main__":
     # cpu_per_process = 64
 
     param_name = "mesh_delta_coeff"
-    # param_range = np.arange(0.1, 1.4, 0.3)
-    # param_range = np.append(param_range, [1.25])
-    param_range = [0.1]
+    param_range = np.arange(0.1, 1.4, 0.3)
+    param_range = np.append(param_range, [1.25])
     param_sample = [{param_name:c} for c in param_range]
 
     M_sample = [1.7]

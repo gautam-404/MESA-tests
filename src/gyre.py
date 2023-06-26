@@ -36,10 +36,10 @@ def get_gyre_params(name, zinit=None):
         p = int(row["profile_number"])
 
         # don't run gyre on very cool models (below about 6000 K)
-        if row["log_Teff"] < 3.778:
-            continue
-        else:
-            profiles.append(f"{name}/LOGS/profile{p}.data.GYRE")
+        # if row["log_Teff"] < 3.778:
+        #     continue
+        # else:
+        profiles.append(f"{name}/LOGS/profile{p}.data.GYRE")
         try:
             muhz_to_cd = 86400/1.0E6
             mesa_dnu = row["delta_nu"]
