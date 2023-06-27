@@ -173,17 +173,33 @@ def teff_helper(star, retry):
 
 
 if __name__ == "__main__":
-    nf = 2
+    nf = "_net_1.7_0.015"
     folder = f"test{nf}"
     parallel = True
     use_ray = False
-    produce_track = True
+    produce_track = False
     # cpu_per_process = 64
 
-    param_name = "mesh_delta_coeff"
-    param_range = np.arange(0.1, 1.4, 0.3)
-    param_range = np.append(param_range, [1.25])
-    param_sample = [{param_name:c} for c in param_range]
+    # param_name = "mesh_delta_coeff"
+    # param_range = np.arange(0.1, 1.4, 0.3)
+    # param_range = np.append(param_range, [1.25])
+    # param_sample = [{param_name:c} for c in param_range]
+
+    param_sample = [{'change_net' : True, 'new_net_name' : 'basic.net',
+                    'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
+            {'change_net' : True, 'new_net_name' : 'pp_extras.net',
+                    'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
+            {'change_net' : True, 'new_net_name' : 'hot_cno.net',
+                    'change_initial_net' : True, 'adjust_abundances_for_new_isos' : True,
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
+            {'change_net' : True, 'new_net_name' : 'pp_and_cno_extras.net',  
+                    'change_initial_net' : False, 'adjust_abundances_for_new_isos' : True,
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False},
+            {'change_net' : True, 'new_net_name' : 'pp_and_hot_cno.net',  
+                    'change_initial_net' : False, 'adjust_abundances_for_new_isos' : True,
+                    'show_net_species_info' : False, 'show_net_reactions_info' : False}]
 
     M_sample = [1.7]
     Z_sample = [0.015]
