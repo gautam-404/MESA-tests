@@ -108,7 +108,10 @@ def evo_star(args):
                             star.set(rotation_init_params, force=True)
                         print(f"End age: {proj.run(logging=logging, parallel=parallel, trace=trace):.2e} yrs\n")
                     else:
-                        
+                        ########## Skip post-MS evolution for now ##########
+                        if phase_name == "Evolution post-MS":
+                            continue
+                        ####################################################
                         print(f"End age: {proj.resume(logging=logging, parallel=parallel, trace=trace):.2e} yrs\n")
                 except Exception as e:
                     failed = True
@@ -183,8 +186,8 @@ if __name__ == "__main__":
     # Z_sample = [0.001, 0.004, 0.007, 0.01, 0.013, 0.015, 0.018, 0.021]
     # V_sample = [0, 5, 10, 15, 20]
     M_sample = [1.7]
-    Z_sample = [0.001, 0.007, 0.015, 0.021, 0.026]
-    V_sample = [0]
+    Z_sample = [0.015]
+    V_sample = [20]
     combinations = list(itertools.product(M_sample, Z_sample, V_sample))
     
     M = []

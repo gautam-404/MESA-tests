@@ -575,7 +575,7 @@
    !r_equatorial ! (Rsun)
    !log_r_equatorial ! log10 (Rsun)
    !r_e_div_r_p ! equatorial/r_polar
-   !omega_crit ! breakup angular velocity = sqrt(G M / equatorial^3)
+   omega_crit ! breakup angular velocity = sqrt(G M / equatorial^3)
    !omega_div_omega_crit
       
    !am_log_nu_omega ! for diffusion of omega
