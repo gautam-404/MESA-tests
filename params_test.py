@@ -26,6 +26,7 @@ def evo_star(args):
             args[6] (bool): whether to log the evolution in a run.log file
             args[7] (bool): whether this function is being run in parallel with ray
     '''
+    os.chdir("/scratch/qq01/ag9272/MESA-tests/")
     name, mass, metallicity, v_surf_init, param, gyre_flag, logging, parallel, cpu_this_process, produce_track, uniform_rotation = args
     trace = None
 
@@ -111,6 +112,10 @@ def evo_star(args):
                             star.set(rotation_init_params, force=True)
                         print(f"End age: {proj.run(logging=logging, parallel=parallel, trace=trace):.2e} yrs\n")
                     else:
+                        ########## Skip post-MS evolution for now ##########
+                        if phase_name == "Evolution post-MS":
+                            continue
+                        ####################################################
                         print(f"End age: {proj.resume(logging=logging, parallel=parallel, trace=trace):.2e} yrs\n")
                 except Exception as e:
                     failed = True
@@ -178,7 +183,7 @@ if __name__ == "__main__":
     parallel = True
     use_ray = False
     produce_track = True
-    cpu_per_process = 16
+    cpu_per_process = 4
 
     # param_name = "mesh_delta_coeff"
     # param_range = np.arange(0.1, 1.4, 0.3)

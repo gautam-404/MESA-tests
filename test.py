@@ -187,7 +187,7 @@ if __name__ == "__main__":
     # V_sample = [0, 5, 10, 15, 20]
     M_sample = [1.7]
     Z_sample = [0.015]
-    V_sample = [20]
+    V_sample = [0]
     combinations = list(itertools.product(M_sample, Z_sample, V_sample))
     
     M = []
