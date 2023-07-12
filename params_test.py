@@ -26,8 +26,8 @@ def evo_star(args):
             args[6] (bool): whether to log the evolution in a run.log file
             args[7] (bool): whether this function is being run in parallel with ray
     '''
-    os.chdir("/scratch/qq01/ag9272/MESA-tests/")
-    name, mass, metallicity, v_surf_init, param, gyre_flag, logging, parallel, cpu_this_process, produce_track, uniform_rotation = args
+    dir_, name, mass, metallicity, v_surf_init, param, gyre_flag, logging, parallel, cpu_this_process, produce_track, uniform_rotation = args
+    os.chdir(dir_)
     trace = None
 
     print(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s")
@@ -112,10 +112,6 @@ def evo_star(args):
                             star.set(rotation_init_params, force=True)
                         print(f"End age: {proj.run(logging=logging, parallel=parallel, trace=trace):.2e} yrs\n")
                     else:
-                        ########## Skip post-MS evolution for now ##########
-                        if phase_name == "Evolution post-MS":
-                            continue
-                        ####################################################
                         print(f"End age: {proj.resume(logging=logging, parallel=parallel, trace=trace):.2e} yrs\n")
                 except Exception as e:
                     failed = True
@@ -178,12 +174,13 @@ def teff_helper(star, retry):
 
 
 if __name__ == "__main__":
+    dir_ = os.getcwd()
     nf = "_dsct_new"
     folder = f"test{nf}"
     parallel = True
     use_ray = False
     produce_track = True
-    cpu_per_process = 4
+    cpu_per_process = 16
 
     # param_name = "mesh_delta_coeff"
     # param_range = np.arange(0.1, 1.4, 0.3)
@@ -215,7 +212,7 @@ if __name__ == "__main__":
     # cpu_per_process = int(psutil.cpu_count(logical=False)//length)
     print(f"Total models: {length}\n")
     if parallel:
-        args = zip(names, M, Z, V, params, repeat(True), repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track), repeat(True))
+        args = zip(repeat(dir_), names, M, Z, V, params, repeat(True), repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track), repeat(True))
         if use_ray:
             import ray   
             try:
@@ -234,7 +231,6 @@ if __name__ == "__main__":
     else:
         os.environ["OMP_NUM_THREADS"] = '12'
         for i in range(len(names)):
-            evo_star((names[i], M[i], Z[i], V[i], params[i], True, False, cpu_per_process, produce_track))
-            os.chdir("/Users/anujgautam/Documents/MESA-workspace/MESA-tests/")
+            evo_star((dir_, names[i], M[i], Z[i], V[i], params[i], True, False, cpu_per_process, produce_track))
 
  
