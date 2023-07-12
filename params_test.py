@@ -26,7 +26,8 @@ def evo_star(args):
             args[6] (bool): whether to log the evolution in a run.log file
             args[7] (bool): whether this function is being run in parallel with ray
     '''
-    name, mass, metallicity, v_surf_init, param, gyre_flag, logging, parallel, cpu_this_process, produce_track, uniform_rotation = args
+    dir, name, mass, metallicity, v_surf_init, param, gyre_flag, logging, parallel, cpu_this_process, produce_track, uniform_rotation = args
+    os.chdir(dir)
     trace = None
 
     print(f"Mass: {mass} MSun, Z: {metallicity}, v_init: {v_surf_init} km/s")
@@ -173,6 +174,7 @@ def teff_helper(star, retry):
 
 
 if __name__ == "__main__":
+    dir = os.getcwd()
     nf = "_dsct_new"
     folder = f"test{nf}"
     parallel = True
@@ -210,7 +212,7 @@ if __name__ == "__main__":
     # cpu_per_process = int(psutil.cpu_count(logical=False)//length)
     print(f"Total models: {length}\n")
     if parallel:
-        args = zip(names, M, Z, V, params, repeat(True), repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track), repeat(True))
+        args = zip(repeat(dir), names, M, Z, V, params, repeat(True), repeat(True), repeat(True), repeat(cpu_per_process), repeat(produce_track), repeat(True))
         if use_ray:
             import ray   
             try:
@@ -229,7 +231,6 @@ if __name__ == "__main__":
     else:
         os.environ["OMP_NUM_THREADS"] = '12'
         for i in range(len(names)):
-            evo_star((names[i], M[i], Z[i], V[i], params[i], True, False, cpu_per_process, produce_track))
-            os.chdir("/Users/anujgautam/Documents/MESA-workspace/MESA-tests/")
+            evo_star((dir, names[i], M[i], Z[i], V[i], params[i], True, False, cpu_per_process, produce_track))
 
  
