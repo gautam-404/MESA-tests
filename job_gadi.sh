@@ -2,7 +2,7 @@
  
 #PBS -N MESA_test
 #PBS -q express
-#PBS -l ncpus=96
+#PBS -l ncpus=48
 #PBS -l mem=100GB
 #PBS -l walltime=12:00:00
 #PBS -o job_gadi.out
