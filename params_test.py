@@ -176,23 +176,27 @@ def teff_helper(star, retry):
 
 if __name__ == "__main__":
     dir_ = os.getcwd()
-    nf = "_dsct_new"
+    nf = "_mesh"
     folder = f"test{nf}"
     parallel = True
     use_ray = False
     produce_track = True
-    cpu_per_process = 6
+    cpu_per_process = 4
 
-    # param_name = "mesh_delta_coeff"
-    # param_range = np.arange(0.1, 1.4, 0.3)
-    # param_range = np.append(param_range, [1.25])
-    # param_sample = [{param_name:c} for c in param_range]
+    param_name = "mesh_delta_coeff"
+    param_range = np.arange(0.1, 1.51, 0.2)
+    param_range = np.append(param_range, [1, 1.25])
+    param_sample = [{param_name:c} for c in param_range]
+    M_sample = [1.7]
+    Z_sample = [0.015]
+    V_sample = [0]
 
-    param_sample = [{"mesh_delta_coeff":1.1}]
+    # param_sample = [{"mesh_delta_coeff":1.1}]
+    # M_sample = np.arange(1.5, 2.2, 0.2)
+    # Z_sample = np.arange(0.002, 0.023, 0.004)
+    # V_sample = np.arange(0, 14, 4.)
 
-    M_sample = np.arange(1.5, 2.2, 0.2)
-    Z_sample = np.arange(0.002, 0.023, 0.004)
-    V_sample = np.arange(0, 14, 4.)
+
     combinations = list(itertools.product(M_sample, Z_sample, V_sample, param_sample))
     
     M = []
