@@ -181,7 +181,7 @@ if __name__ == "__main__":
     parallel = True
     use_ray = False
     produce_track = True
-    cpu_per_process = 16
+    cpu_per_process = 6
 
     # param_name = "mesh_delta_coeff"
     # param_range = np.arange(0.1, 1.4, 0.3)
