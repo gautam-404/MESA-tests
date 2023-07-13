@@ -104,10 +104,16 @@ def process_gyre_file(grid_iter):
         dino["missing_gyre_flag"] = 1
     return dino
 
-
+log_dirs = sorted(glob.glob("test/m1.7_z0.015_v0_var*/LOGS"))
+mode_labels = ["n1ell0m0","n2ell0m0","n3ell0m0","n4ell0m0","n5ell0m0","n6ell0m0","n7ell0m0","n8ell0m0","n9ell0m0","n10ell0m0",
+            "n1ell1mm1","n2ell1mm1","n3ell1mm1","n4ell1mm1","n5ell1mm1","n6ell1mm1","n7ell1mm1","n8ell1mm1","n9ell1mm1","n10ell1mm1",
+            "n1ell1m0","n2ell1m0","n3ell1m0","n4ell1m0","n5ell1m0","n6ell1m0","n7ell1m0","n8ell1m0","n9ell1m0","n10ell1m0",
+            "n1ell1mp1","n2ell1mp1","n3ell1mp1","n4ell1mp1","n5ell1mp1","n6ell1mp1","n7ell1mp1","n8ell1mp1","n9ell1mp1","n10ell1mp1"]
+mode_strings = ["100","200","300","400","500","600","700","800","900","1000",
+            "11-1","21-1","31-1","41-1","51-1","61-1","71-1","81-1","91-1","101-1",
+            "110","210","310","410","510","610","710","810","910","1010",
+            "11-1","21-1","31-1","41-1","51-1","61-1","71-1","81-1","91-1","101-1"]
 if __name__ == "__main__":
-    # log_dirs = sorted(glob.glob("test_mesh_1.7_0.015/*/LOGS"))
-    log_dirs = sorted(glob.glob("test_net_1.7_0.015/*/LOGS"))
     m = [float(name.split("/")[1].split("_")[0].split("m")[1]) for name in log_dirs]
     z = [float(name.split("/")[1].split("_")[1].split("z")[1]) for name in log_dirs]
     v = [float(name.split("/")[1].split("_")[2].split("v")[1]) for name in log_dirs]
@@ -184,10 +190,11 @@ if __name__ == "__main__":
 
     l = 1
     for n in range(1, 11):
-        mini[f"n{n}ell{l}dfreq"] = mini[f"n{n}ell{l}m0"] - mini[f"n{n}ell{l}mm1"]
+        # mini[f"n{n}ell{l}dfreq"] = mini[f"n{n}ell{l}m0"] - mini[f"n{n}ell{l}mm1"]
+        mini = mini.assign(**{f"n{n}ell{l}dfreq": mini[f"n{n}ell{l}m0"] - mini[f"n{n}ell{l}mm1"]})
         mini.drop(columns=[f"n{n}ell{l}mp1", f"n{n}ell{l}mm1"], inplace=True)
 
     # Drop columns that we don't need for the neural network
     mini.drop(columns=['nu_max', 'missing_gyre_flag'], inplace=True)
 
-    mini.to_csv("minisaurus_parallel.csv", index=False)
+    mini.to_csv("minisaurus_parallel_mesh.csv", index=False)
