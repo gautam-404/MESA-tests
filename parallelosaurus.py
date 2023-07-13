@@ -13,6 +13,12 @@ import copy
 # functions to read profile indexes
 def import_histories(args):
     hfn, pfn, m_i, z_i, v_i, tr_num = args
+    logfn = "".join(hfn.split("LOGS")[0]) + "run.log"
+    with open(logfn, "r") as f:
+        lines = f.readlines()
+        for line in lines:
+            if "Total" in line:
+                run_time = float(line.split(" ")[-2])
     h = pd.read_csv(hfn, delim_whitespace=True, skiprows=5)
     p = pd.read_csv(pfn, skiprows=1, names=['model_number', 'priority', 'profile_number'], delim_whitespace=True)
     h = pd.merge(h, p, on='model_number', how='outer')
@@ -22,6 +28,7 @@ def import_histories(args):
     h["v"] = v_i
     h["tr_num"] = tr_num
     h["density"] = h["star_mass"] / np.power(10, h["log_R"]) ** 3
+    h["run_time"] = run_time
     return h
 
 
@@ -113,6 +120,7 @@ mode_strings = ["100","200","300","400","500","600","700","800","900","1000",
             "11-1","21-1","31-1","41-1","51-1","61-1","71-1","81-1","91-1","101-1",
             "110","210","310","410","510","610","710","810","910","1010",
             "11-1","21-1","31-1","41-1","51-1","61-1","71-1","81-1","91-1","101-1"]
+
 if __name__ == "__main__":
     m = [float(name.split("/")[1].split("_")[0].split("m")[1]) for name in log_dirs]
     z = [float(name.split("/")[1].split("_")[1].split("z")[1]) for name in log_dirs]
