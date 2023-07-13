@@ -191,7 +191,7 @@ if __name__ == "__main__":
         grid = list(tqdm(pool.imap(process_gyre_file, grid.iterrows()), desc=f"Processing gyre files...", total=len(grid)))
 
     megasaurus = pd.DataFrame(grid)
-    megasaurus.to_csv("megasaurus_parallel.csv", index=False)
+    # megasaurus.to_csv("megasaurus_parallel.csv", index=False)
 
     # Drop rows where there was no gyre data, hence no successful Dnu calculation
     mini = megasaurus.query("Dnu==Dnu")
