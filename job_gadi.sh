@@ -10,7 +10,17 @@
 ##PBS -M anuj.gautam@usq.edu.au
 ##PBS -m abe
 
+############ MESA environment variables ###############
+export MESASDK_ROOT=/scratch/qq01/ag9272/workspace/software/mesasdk
+source $MESASDK_ROOT/bin/mesasdk_init.sh
+export MESA_DIR=/scratch/qq01/ag9272/workspace/software/mesa-r23.05.1
+export OMP_NUM_THREADS=2      ## max should be 2 times the cores on your machine
+export GYRE_DIR=$MESA_DIR/gyre/gyre
+#######################################################
+
+source ~/.bashrc
+module restore MESA
 cd $PBS_O_WORKDIR
 
-python params_test.py > params_test.log 2>&1
+python3 params_test.py > params_test.log 2>&1
 

@@ -137,6 +137,7 @@ def evo_star(args):
         end_time = time.time()
         with open(f"{name}/run.log", "a+") as f:
             f.write(f"Total time: {end_time-start_time} s\n\n")
+        print(f"Total time: {end_time-start_time} s\n\n")
     else:
         failed = False
 
